@@ -79,8 +79,8 @@ class NoisyMatricesGenerator(MatricesGenerator):
         
         os.makedirs(saving_path, exist_ok=True)
         coherence_rate_str = f"{self.coherence_rate:.2f}".replace(".", "")
-        matrices_path = os.path.join(saving_path, f"{prefix}matrices_c{coherence_rate_str}.npy")
-        weights_path = os.path.join(saving_path, f"{prefix}weights_c{coherence_rate_str}.npy")
+        matrices_path = os.path.join(saving_path, f"{prefix}matrices_coh{coherence_rate_str}.npy")
+        weights_path = os.path.join(saving_path, f"{prefix}weights_coh{coherence_rate_str}.npy")
         
         np.save(matrices_path, self.matrices)
         np.save(weights_path, self.target_weights)

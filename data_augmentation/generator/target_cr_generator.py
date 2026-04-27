@@ -145,8 +145,8 @@ class TargetCRMatricesGenerator(MatricesGenerator):
         
         os.makedirs(saving_path, exist_ok=True)
         target_cr_str = f"{self.target_cr:.2f}".replace(".", "")
-        matrices_path = os.path.join(saving_path, f"{prefix}matrices_c{target_cr_str}.npy")
-        weights_path = os.path.join(saving_path, f"{prefix}weights_c{target_cr_str}.npy")
+        matrices_path = os.path.join(saving_path, f"{prefix}matrices_cr{target_cr_str}.npy")
+        weights_path = os.path.join(saving_path, f"{prefix}weights_cr{target_cr_str}.npy")
         
         np.save(matrices_path, self.matrices)
         np.save(weights_path, self.target_weights)
