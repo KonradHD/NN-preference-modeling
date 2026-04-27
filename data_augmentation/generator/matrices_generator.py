@@ -1,6 +1,7 @@
 from abc import ABC
 import os
 from abc import abstractmethod
+import numpy as np
 
 
 class MatricesGenerator(ABC):
@@ -15,9 +16,15 @@ class MatricesGenerator(ABC):
 
 
     @abstractmethod
-    def generate(self):
+    def generate_uniform(self) -> tuple[np.ndarray, np.ndarray]:
         raise NotImplementedError()
     
+    
     @abstractmethod
-    def save(self):
+    def generate_dirichlet(self, alpha: list[float]) -> tuple[np.ndarray, np.ndarray]:
+        raise NotImplementedError()
+    
+
+    @abstractmethod
+    def save_state(self, is_uniform: bool, prefix: str = ""):
         raise NotImplementedError()

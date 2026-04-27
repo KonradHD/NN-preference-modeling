@@ -12,12 +12,19 @@ class DataLoader():
         self._noisy_dir = os.path.join(self.base_dir, "noisy")
         
 
-    def load_coherent_matrices(self) -> tuple[np.ndarray, np.ndarray]:
-        matrices_path = os.path.join(self._coherent_dir, "matrices.npy")
-        weights_path = os.path.join(self._coherent_dir, "weights.npy")
+    def load_coherent_matrices(self, is_uniform: bool) -> tuple[np.ndarray, np.ndarray]:
+
+        coherent_saving_path = ""
+        if is_uniform:
+            coherent_saving_path = os.path.join(self._coherent_dir, "uniform")
+        else: 
+            coherent_saving_path = os.path.join(self._coherent_dir, "dirichlet")
+
+        matrices_path = os.path.join(coherent_saving_path, "matrices.npy")
+        weights_path = os.path.join(coherent_saving_path, "weights.npy")
 
         if not os.path.exists(matrices_path) or not os.path.exists(weights_path):
-            raise FileNotFoundError(f"Nie znaleziono plików w {self._coherent_dir}. Upewnij się, że wywołałeś CoherentMatricesGenerator.")
+            raise FileNotFoundError(f"File {coherent_saving_path} does not exist. Generate coherent matrices using CoherentMatricesGenerator.")
 
         matrices = np.load(matrices_path)
         weights = np.load(weights_path)
@@ -26,21 +33,27 @@ class DataLoader():
         return matrices, weights
 
     
-    def load_noisy_matrices(self, coherence_rate: float) -> tuple[np.ndarray, np.ndarray]:
+    def load_noisy_matrices(self, is_uniform: bool, coherence_rate: float) -> tuple[np.ndarray, np.ndarray]:
         if not (0.0 <= coherence_rate <= 1.0):
-            raise ValueError(f"Parametr coherence_rate musi być w przedziale [0, 1]. Otrzymano: {coherence_rate}")
+            raise ValueError(f"Coherence rate must be in range of [0, 1), given: {coherence_rate}")
+        
+        noisy_saving_path = ""
+        if is_uniform:
+            noisy_saving_path = os.path.join(self._noisy_dir, "uniform")
+        else: 
+            noisy_saving_path = os.path.join(self._noisy_dir, "dirichlet")
 
         c_str = f"{coherence_rate:.2f}".replace(".", "")
-        matrices_path = os.path.join(self._noisy_dir, f"matrices_c{c_str}.npy")
-        weights_path = os.path.join(self._noisy_dir, f"weights_c{c_str}.npy")
+        matrices_path = os.path.join(noisy_saving_path, f"matrices_c{c_str}.npy")
+        weights_path = os.path.join(noisy_saving_path, f"weights_c{c_str}.npy")
         
         if not os.path.exists(matrices_path) or not os.path.exists(weights_path):
-            raise FileNotFoundError(f"Nie znaleziono plików dla coherence_rate={coherence_rate} w {self._noisy_dir}.")
+            raise FileNotFoundError(f"Files not found with coherence_rate={coherence_rate} in {noisy_saving_path}.")
 
         matrices = np.load(matrices_path)
         weights = np.load(weights_path)
         
-        print(f"Pomyślnie wczytano {len(matrices)} zaszumionych macierzy (poziom: c{c_str}).")
+        print(f"Successfuly uploaded {len(matrices)} noised matrices (level: c{c_str}).")
         return matrices, weights
 
 

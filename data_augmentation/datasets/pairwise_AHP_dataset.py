@@ -16,6 +16,7 @@ class PairwiseAHPDataset(Dataset):
                     if i != j:
                         self._pairs.append((m, i, j))
 
+
     def __len__(self) -> int:
         return len(self._pairs)
 
