@@ -4,8 +4,12 @@ import torch
 
 
 class PairwiseAHPDataset(Dataset):
-    def __init__(self, matrices: np.ndarray):
-        self.matrices = matrices
+    def __init__(self, matrices: np.ndarray, weights: np.ndarray):
+        if matrices.shape[0] != weights.shape[0]:
+           raise ValueError("Target weights shape does not match with number of criterias in matrices.")
+        
+        self.weights = torch.tensor(weights, dtype=torch.float32)
+        self.matrices = torch.tensor(matrices, dtype=torch.float32)
         self._num_matrices = matrices.shape[0]
         self._num_criteria = matrices.shape[2]
         self._pairs = []
@@ -22,14 +26,12 @@ class PairwiseAHPDataset(Dataset):
 
 
     def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        m, i, j = self.pairs[idx]
+        # TODO: 
+        m, i, j = self._pairs[idx]
         matrix = self.matrices[m]
 
         row_i = torch.tensor(matrix[i, :], dtype=torch.float32)
         row_j = torch.tensor(matrix[j, :], dtype=torch.float32)
-
-        a_ij = matrix[i, j]
-        target_val = np.log(a_ij)
-        target = torch.tensor([target_val], dtype=torch.float32)
+        target = self.weights[idx]
 
         return row_i, row_j, target
