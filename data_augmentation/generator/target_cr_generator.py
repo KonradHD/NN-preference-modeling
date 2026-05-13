@@ -133,6 +133,50 @@ class TargetCRMatricesGenerator(MatricesGenerator):
         return self.matrices, self.target_weights
 
 
+    def from_weights(self, weights : np.ndarray) -> np.ndarray:
+        if weights.shape[1] != self.num_criteria:
+            raise ValueError(f"Weights vector shape: {weights.shape[1]} should match the criteria number: {self.num_criteria}")
+
+        matrices = []
+
+        for w in weights:
+            ideal_matrix = np.outer(w, 1.0 / w)
+
+            if self.target_cr == 0.0:
+                matrices.append(ideal_matrix)
+                continue
+
+            current_sigma = 0.3
+            learning_rate = 0.05
+            
+            while True:
+                noisy_matrix = np.zeros_like(ideal_matrix)
+                n = self.num_criteria
+                
+                for i in range(n):
+                    for j in range(n):
+                        if i == j:
+                            noisy_matrix[i, j] = 1.0
+                        elif i < j:
+                            noise_factor = np.random.lognormal(mean=0.0, sigma=current_sigma)
+                            noisy_matrix[i, j] = ideal_matrix[i, j] * noise_factor
+                        else:
+                            noisy_matrix[i, j] = 1.0 / noisy_matrix[j, i]
+
+                current_cr = self._calculate_cr(noisy_matrix)
+
+                if abs(current_cr - self.target_cr) <= self.tolerance:
+                    matrices.append(noisy_matrix)
+                    break
+                
+                elif current_cr < self.target_cr:
+                    current_sigma += learning_rate
+                else:
+                    current_sigma = max(0.01, current_sigma - (learning_rate * 0.5))
+        
+        return np.array(matrices)
+
+
     def save_state(self, is_uniform: bool, prefix: str = "") -> None:
         if self.matrices is None or self.target_weights is None:
             raise ValueError("You have to generate matrices and weights first")

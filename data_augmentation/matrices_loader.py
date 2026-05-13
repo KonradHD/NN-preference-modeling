@@ -2,7 +2,7 @@ import os
 import numpy as np
 
 
-class DataLoader():
+class MatricesLoader():
     def __init__(self, base_dir: str | None = None):
         self.base_dir = base_dir
         if self.base_dir is None: 
