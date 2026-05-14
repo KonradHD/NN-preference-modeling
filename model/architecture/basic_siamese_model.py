@@ -1,5 +1,5 @@
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class AHPEncoder(nn.Module):
     def __init__(self, n_criteria):
@@ -24,9 +24,9 @@ class AHPEncoder(nn.Module):
         return logits
 
 
-class SiameseAHPModel(nn.Module):
+class BasicSiameseModel(nn.Module):
     def __init__(self, n_criteria):
-        super(SiameseAHPModel, self).__init__()
+        super(BasicSiameseModel, self).__init__()
         self.encoder = AHPEncoder(n_criteria)
 
     def forward(self, m1, m2):
