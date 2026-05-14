@@ -75,9 +75,11 @@ class NoisyMatricesGenerator(MatricesGenerator):
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._noisy_dir, "uniform", split.value)
+            saving_path = os.path.join(self._noisy_dir, "uniform", 
+                                       f"criteria{self.num_criteria}", split.value)
         else: 
-            saving_path = os.path.join(self._noisy_dir, "dirichlet", split.value)
+            saving_path = os.path.join(self._noisy_dir, "dirichlet", 
+                                       f"criteria{self.num_criteria}", split.value)
         
         os.makedirs(saving_path, exist_ok=True)
         coherence_rate_str = f"{self.coherence_rate:.2f}".replace(".", "")

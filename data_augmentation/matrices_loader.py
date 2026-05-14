@@ -14,13 +14,15 @@ class MatricesLoader():
         self._noisy_cr_dir = os.path.join(self.base_dir, "noisy_cr")
         
 
-    def load_coherent_matrices(self, split: Phase, is_uniform: bool) -> tuple[np.ndarray, np.ndarray]:
+    def load_coherent_matrices(self, split: Phase, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
 
         coherent_saving_path = ""
         if is_uniform:
-            coherent_saving_path = os.path.join(self._coherent_dir, "uniform", split.value)
+            coherent_saving_path = os.path.join(self._coherent_dir, "uniform", 
+                                                f"criteria{criteria_num}", split.value)
         else: 
-            coherent_saving_path = os.path.join(self._coherent_dir, "dirichlet", split.value)
+            coherent_saving_path = os.path.join(self._coherent_dir, "dirichlet", 
+                                                f"criteria{criteria_num}", split.value)
 
         matrices_path = os.path.join(coherent_saving_path, "matrices.npy")
         weights_path = os.path.join(coherent_saving_path, "weights.npy")
@@ -35,15 +37,17 @@ class MatricesLoader():
         return matrices, weights
 
     
-    def load_noisy_matrices(self, split: Phase, coherence_rate: float, is_uniform: bool) -> tuple[np.ndarray, np.ndarray]:
+    def load_noisy_matrices(self, split: Phase, coherence_rate: float, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
         if not (0.0 <= coherence_rate <= 1.0):
             raise ValueError(f"Coherence rate must be in range of [0, 1), given: {coherence_rate}")
         
         noisy_saving_path = ""
         if is_uniform:
-            noisy_saving_path = os.path.join(self._noisy_dir, "uniform", split.value)
+            noisy_saving_path = os.path.join(self._noisy_dir, "uniform", 
+                                             f"criteria{criteria_num}", split.value)
         else: 
-            noisy_saving_path = os.path.join(self._noisy_dir, "dirichlet", split.value)
+            noisy_saving_path = os.path.join(self._noisy_dir, "dirichlet", 
+                                             f"criteria{criteria_num}", split.value)
 
         c_str = f"{coherence_rate:.2f}".replace(".", "")
         matrices_path = os.path.join(noisy_saving_path, f"matrices_coh{c_str}.npy")
@@ -59,15 +63,17 @@ class MatricesLoader():
         return matrices, weights
     
 
-    def load_noisy_cr_matrices(self, split: Phase, consistency_ratio: float, is_uniform: bool) -> tuple[np.ndarray, np.ndarray]:
+    def load_noisy_cr_matrices(self, split: Phase, consistency_ratio: float, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
         if not (0.0 <= consistency_ratio <= 1.0):
             raise ValueError(f"consistency ratio must be in range of [0, 1), given: {consistency_ratio}")
         
         noisy_saving_path = ""
         if is_uniform:
-            noisy_saving_path = os.path.join(self._noisy_cr_dir, "uniform", split.value)
+            noisy_saving_path = os.path.join(self._noisy_cr_dir, "uniform", 
+                                             f"criteria{criteria_num}", split.value)
         else: 
-            noisy_saving_path = os.path.join(self._noisy_cr_dir, "dirichlet", split.value)
+            noisy_saving_path = os.path.join(self._noisy_cr_dir, "dirichlet", 
+                                             f"criteria{criteria_num}", split.value)
 
         c_str = f"{consistency_ratio:.2f}".replace(".", "")
         matrices_path = os.path.join(noisy_saving_path, f"matrices_cr{c_str}.npy")

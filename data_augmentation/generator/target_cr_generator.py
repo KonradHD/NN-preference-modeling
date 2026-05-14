@@ -183,9 +183,11 @@ class TargetCRMatricesGenerator(MatricesGenerator):
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._noisy_dir, "uniform", split.value)
+            saving_path = os.path.join(self._noisy_dir, "uniform", 
+                                       f"criteria{self.num_criteria}", split.value)
         else: 
-            saving_path = os.path.join(self._noisy_dir, "dirichlet", split.value)
+            saving_path = os.path.join(self._noisy_dir, "dirichlet", 
+                                       f"criteria{self.num_criteria}", split.value)
         
         os.makedirs(saving_path, exist_ok=True)
         target_cr_str = f"{self.target_cr:.2f}".replace(".", "")

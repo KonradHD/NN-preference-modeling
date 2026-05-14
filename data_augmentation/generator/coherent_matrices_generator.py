@@ -49,9 +49,11 @@ class CoherentMatricesGenerator(MatricesGenerator):
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._coherent_dir, "uniform", split.value)
+            saving_path = os.path.join(self._coherent_dir, "uniform", 
+                                       f"criteria{self.num_criteria}", split.value)
         else: 
-            saving_path = os.path.join(self._coherent_dir, "dirichlet", split.value)
+            saving_path = os.path.join(self._coherent_dir, "dirichlet", 
+                                       f"criteria{self.num_criteria}", split.value)
 
         os.makedirs(saving_path, exist_ok=True)
         matrices_path = os.path.join(saving_path, f"{prefix}matrices.npy")
