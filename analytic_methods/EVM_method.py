@@ -19,20 +19,17 @@ class EVM():
         n = matrix.shape[0]
         eigenvalues, eigenvectors = np.linalg.eig(matrix)
         
-        real_eigenvalues = np.real(eigenvalues)
-        max_index = np.argmax(real_eigenvalues)
-        lambda_max = real_eigenvalues[max_index]
+        max_index = np.argmax(np.real(eigenvalues))
+        lambda_max = np.real(eigenvalues[max_index])
 
-        principal_eigenvector = np.real(eigenvectors[:, max_index])
-        
-        if np.sum(principal_eigenvector) < 0:
-            principal_eigenvector = -principal_eigenvector
-        
+        principal_eigenvector = eigenvectors[:, max_index]
+        principal_eigenvector = np.abs(principal_eigenvector)
         weights = principal_eigenvector / np.sum(principal_eigenvector)
+        
         if n > 2:
             ci = (lambda_max - n) / (n - 1)
-            ri = self.ri_dict.get(n, 1.49)
-            cr = ci / ri
+            ri = self.ri_dict.get(n, 1.49) 
+            cr = max(0.0, ci / ri)
         else:
             cr = 0.0 
             

@@ -42,7 +42,7 @@ class Evaluator:
         - tau_scores: Wektor korelacji Kendalla (N_macierzy,)
         """
         if y_true_batch.shape != y_pred_batch.shape:
-            raise ValueError(f"Niezgodność wymiarów! Ground Truth: {y_true_batch.shape}, Predykcje: {y_pred_batch.shape}")
+            raise ValueError(f"Batches shapes do not match: ! Ground Truth: {y_true_batch.shape}, Predictions: {y_pred_batch.shape}")
 
         num_samples = y_true_batch.shape[0]
         mae_scores = np.zeros(num_samples)
@@ -53,3 +53,16 @@ class Evaluator:
             tau_scores[i] = self.calculate_kendall_tau(y_true_batch[i], y_pred_batch[i])
 
         return mae_scores, tau_scores
+    
+
+    def evaluate_single(self, y_true: np.ndarray, y_pred: np.ndarray):
+        y_true_flat = y_true.flatten()
+        y_pred_flat = y_pred.flatten()
+
+        if y_true_flat.shape != y_pred_flat.shape:
+             raise ValueError(f"Vectors shapes do not match: {y_true_flat.shape} vs {y_pred_flat.shape}")
+
+        mae = self.calculate_mae(y_true_flat, y_pred_flat)
+        tau = self.calculate_kendall_tau(y_true_flat, y_pred_flat)
+
+        return mae, tau
