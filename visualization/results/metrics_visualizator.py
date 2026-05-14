@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import numpy as np
 import pandas as pd
@@ -44,19 +45,19 @@ class MetricsVisualizator():
 
     def plot_comparison(self, cr_values: np.ndarray, mae_errors_analytic: np.ndarray, 
                         kendall_taus_analytic: np.ndarray, mae_errors_nn: np.ndarray, 
-                        kendall_taus_nn: np.ndarray):
+                        kendall_taus_nn: np.ndarray, nn_name: str) -> None:
         data_analytic = pd.DataFrame({
             'CR': cr_values,
             'MAE': mae_errors_analytic,
             'Kendall Tau': kendall_taus_analytic,
-            'Metoda': 'Analityczna (EVM)'
+            'Method': 'Analytic (EVM)'
         })
         
         data_nn = pd.DataFrame({
             'CR': cr_values,
             'MAE': mae_errors_nn,
             'Kendall Tau': kendall_taus_nn,
-            'Metoda': 'Sieć Neuronowa'
+            'Method': nn_name
         })
         
         df = pd.concat([data_analytic, data_nn], axis=0)
@@ -64,23 +65,50 @@ class MetricsVisualizator():
 
         fig, axes = plt.subplots(1, 2, figsize=(16, 7))
 
-        sns.lineplot(data=df, x='CR_binned', y='MAE', hue='Metoda', palette=['royalblue', 'orange'], ax=axes[0], linewidth=2.5)
-        axes[0].axvline(0.1, color='red', linestyle='--', alpha=0.6, label="Próg Saaty'ego")
-        axes[0].set_title('Porównanie błędów MAE\n(Im niżej, tym lepiej)', fontsize=14)
-        axes[0].set_xlabel('Współczynnik Niespójności (CR)')
-        axes[0].set_ylabel('Błąd Średni Bezwzględny (MAE)')
+        sns.lineplot(data=df, x='CR_binned', y='MAE', hue='Method', palette=['royalblue', 'orange'], ax=axes[0], linewidth=2.5)
+        axes[0].axvline(0.1, color='red', linestyle='--', alpha=0.6, label="Saaty's Threshold")
+        axes[0].set_title('MAE Comparison\n', fontsize=14)
+        axes[0].set_xlabel('Consistency Ratio (CR)')
+        axes[0].set_ylabel('Mean Absolute Error (MAE)')
         axes[0].grid(True, alpha=0.3)
         axes[0].legend()
 
-        sns.lineplot(data=df, x='CR_binned', y='Kendall Tau', hue='Metoda', palette=['forestgreen', 'darkred'], ax=axes[1], linewidth=2.5)
+        sns.lineplot(data=df, x='CR_binned', y='Kendall Tau', hue='Method', palette=['forestgreen', 'darkred'], ax=axes[1], linewidth=2.5)
         axes[1].axvline(0.1, color='red', linestyle='--', alpha=0.6)
-        axes[1].set_title('Stabilność Rankingu (Kendall Tau)\n(Im wyżej, tym lepiej)', fontsize=14)
-        axes[1].set_xlabel('Współczynnik Niespójności (CR)')
-        axes[1].set_ylabel('Korelacja Rang')
+        axes[1].set_title('Ranking Stability (Kendall Tau)', fontsize=14)
+        axes[1].set_xlabel('Consistency Ratio (CR)')
+        axes[1].set_ylabel('Rank Correlation')
         axes[1].set_ylim(0, 1.05)
         axes[1].grid(True, alpha=0.3)
         axes[1].legend()
 
-        plt.suptitle("Porównanie Odporności: Algorytm Klasyczny vs Sieć Neuronowa", fontsize=18, fontweight='bold', y=1.02)
+        plt.suptitle("Stability comparison: Classic algorithm vs Neural Network", fontsize=18, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        plt.show()
+
+    
+    def display_loss(self, history: dict[str, list]) -> None:
+        if not history or 'train' not in history or not history['train']:
+            print("Błąd: Brak danych treningowych do wyświetlenia na wykresie.")
+            return
+
+        epochs = range(1, len(history['train']) + 1)
+        plt.figure(figsize=(10, 6))
+        plt.plot(epochs, history['train'], label='Strata Treningowa (Train Loss)', 
+                color='#1f77b4', linewidth=2.5)
+
+        if 'valid' in history and history['valid']:
+            plt.plot(epochs, history['valid'], label='Strata Walidacyjna (Valid Loss)', 
+                    color='#ff7f0e', linewidth=2.5, linestyle='--')
+
+        plt.title('Krzywe Uczenia Sieci SiameseAHP', fontsize=14, pad=15)
+        plt.xlabel('Epoka', fontsize=12)
+        plt.ylabel('Wartość Straty (Loss)', fontsize=12)
+
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        plt.grid(True, linestyle=':', alpha=0.7)
+        plt.legend(fontsize=11, loc='upper right')
         plt.tight_layout()
         plt.show()

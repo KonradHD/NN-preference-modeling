@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from utils.phase import Phase
+import warnings
 
 
 class MatricesLoader():
@@ -14,15 +15,16 @@ class MatricesLoader():
         self._noisy_cr_dir = os.path.join(self.base_dir, "noisy_cr")
         
 
-    def load_coherent_matrices(self, split: Phase, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
+    def load_coherent_matrices(self, split: Phase, is_uniform: bool, criteria_num: int,
+                               matrices_num: int) -> tuple[np.ndarray, np.ndarray]:
 
-        coherent_saving_path = ""
-        if is_uniform:
-            coherent_saving_path = os.path.join(self._coherent_dir, "uniform", 
-                                                f"criteria{criteria_num}", split.value)
-        else: 
-            coherent_saving_path = os.path.join(self._coherent_dir, "dirichlet", 
-                                                f"criteria{criteria_num}", split.value)
+        distribution_folder = "uniform" if is_uniform else "dirichlet"
+        coherent_saving_path = os.path.join(
+            self._coherent_dir, 
+            distribution_folder, 
+            f"criteria{criteria_num}", 
+            split.value
+        )
 
         matrices_path = os.path.join(coherent_saving_path, "matrices.npy")
         weights_path = os.path.join(coherent_saving_path, "weights.npy")
@@ -32,22 +34,31 @@ class MatricesLoader():
 
         matrices = np.load(matrices_path)
         weights = np.load(weights_path)
+
+        loaded_len = len(matrices)
+        if loaded_len > matrices_num:
+            matrices = matrices[:matrices_num]
+            weights = weights[:matrices_num]
+            print(f"Successfully uploaded {matrices_num} coherent matrices")
         
-        print(f"Pomyślnie wczytano {len(matrices)} spójnych macierzy.")
+        elif loaded_len < matrices_num:
+            warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
+
         return matrices, weights
 
-    
-    def load_noisy_matrices(self, split: Phase, coherence_rate: float, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
-        if not (0.0 <= coherence_rate <= 1.0):
+
+    def load_noisy_matrices(self, split: Phase, coherence_rate: float, is_uniform: bool, 
+                            criteria_num: int, matrices_num: int) -> tuple[np.ndarray, np.ndarray]:
+        if not (0.0 <= coherence_rate < 1.0):
             raise ValueError(f"Coherence rate must be in range of [0, 1), given: {coherence_rate}")
         
-        noisy_saving_path = ""
-        if is_uniform:
-            noisy_saving_path = os.path.join(self._noisy_dir, "uniform", 
-                                             f"criteria{criteria_num}", split.value)
-        else: 
-            noisy_saving_path = os.path.join(self._noisy_dir, "dirichlet", 
-                                             f"criteria{criteria_num}", split.value)
+        distribution_folder = "uniform" if is_uniform else "dirichlet"
+        noisy_saving_path = os.path.join(
+            self._noisy_dir, 
+            distribution_folder, 
+            f"criteria{criteria_num}", 
+            split.value
+        )
 
         c_str = f"{coherence_rate:.2f}".replace(".", "")
         matrices_path = os.path.join(noisy_saving_path, f"matrices_coh{c_str}.npy")
@@ -59,21 +70,30 @@ class MatricesLoader():
         matrices = np.load(matrices_path)
         weights = np.load(weights_path)
         
-        print(f"Successfuly uploaded {len(matrices)} noised matrices (level: c{c_str}).")
+        loaded_len = len(matrices)
+        if loaded_len > matrices_num:
+            matrices = matrices[:matrices_num]
+            weights = weights[:matrices_num]
+            print(f"Successfully uploaded {matrices_num} noised matrices (level: c{c_str}).")
+        
+        elif loaded_len < matrices_num:
+            warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
+
         return matrices, weights
     
 
-    def load_noisy_cr_matrices(self, split: Phase, consistency_ratio: float, is_uniform: bool, criteria_num: int) -> tuple[np.ndarray, np.ndarray]:
-        if not (0.0 <= consistency_ratio <= 1.0):
-            raise ValueError(f"consistency ratio must be in range of [0, 1), given: {consistency_ratio}")
+    def load_noisy_cr_matrices(self, split: Phase, consistency_ratio: float, is_uniform: bool,
+                                criteria_num: int, matrices_num: int) -> tuple[np.ndarray, np.ndarray]:
+        if not (0.0 <= consistency_ratio < 1.0):
+            raise ValueError(f"Consistency ratio must be in range of [0, 1), given: {consistency_ratio}")
         
-        noisy_saving_path = ""
-        if is_uniform:
-            noisy_saving_path = os.path.join(self._noisy_cr_dir, "uniform", 
-                                             f"criteria{criteria_num}", split.value)
-        else: 
-            noisy_saving_path = os.path.join(self._noisy_cr_dir, "dirichlet", 
-                                             f"criteria{criteria_num}", split.value)
+        distribution_folder = "uniform" if is_uniform else "dirichlet"
+        noisy_saving_path = os.path.join(
+            self._noisy_cr_dir, 
+            distribution_folder, 
+            f"criteria{criteria_num}", 
+            split.value
+        )
 
         c_str = f"{consistency_ratio:.2f}".replace(".", "")
         matrices_path = os.path.join(noisy_saving_path, f"matrices_cr{c_str}.npy")
@@ -85,7 +105,15 @@ class MatricesLoader():
         matrices = np.load(matrices_path)
         weights = np.load(weights_path)
         
-        print(f"Successfuly uploaded {len(matrices)} noised matrices (level: c{c_str}).")
+        loaded_len = len(matrices)
+        if loaded_len > matrices_num:
+            matrices = matrices[:matrices_num]
+            weights = weights[:matrices_num]
+            print(f"Successfully uploaded {matrices_num} noised matrices (level: cr{c_str}).")
+        
+        elif loaded_len < matrices_num:
+            warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
+
         return matrices, weights
 
 

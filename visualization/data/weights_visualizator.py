@@ -9,19 +9,20 @@ class WeightsVisualizator():
         sns.set_theme(style="whitegrid")
 
 
-    def plot_comparison_pred(self, weights: np.ndarray, pred_weights: np.ndarray, consistency_ratio: float, title: str = "Weights Comparison") -> None:
+    def plot_comparison_pred(self, weights: np.ndarray, pred_weights: np.ndarray, consistency_ratio: float, 
+                             nn_name: str, title: str = "Weights Comparison") -> None:
         plt.figure(figsize=(max(self.figsize[0], 8), self.figsize[1] // 2 + 1))
         ax = plt.gca()
 
         x = np.arange(len(weights))  
         width = 0.35
-        rects1 = ax.bar(x - width/2, weights, width, label='Wagi Docelowe (Ground Truth)', color='#2ca02c', alpha=0.85)
-        rects2 = ax.bar(x + width/2, pred_weights, width, label='Wagi Przewidziane (Sieć)', color='#1f77b4', alpha=0.85)
+        rects1 = ax.bar(x - width/2, weights, width, label='Ground Truth', color='#2ca02c', alpha=0.85)
+        rects2 = ax.bar(x + width/2, pred_weights, width, label=f'NN weights ({nn_name})', color='#1f77b4', alpha=0.85)
 
-        ax.set_ylabel('Wartość wagi (0.0 - 1.0)', fontsize=12)
+        ax.set_ylabel('Priority values', fontsize=12)
         ax.set_title(f"{title}, cr={consistency_ratio:.4f}", fontsize=14, pad=15)
         ax.set_xticks(x)
-        ax.set_xticklabels([f"Kryt {i}" for i in range(len(weights))], fontsize=11)
+        ax.set_xticklabels([f"Crit {i}" for i in range(len(weights))], fontsize=11)
         ax.set_ylim(0, 1.05)
         ax.legend(fontsize=11, loc='upper right')
 
@@ -42,21 +43,21 @@ class WeightsVisualizator():
 
 
     def plot_comparison_all(self, weights: np.ndarray, pred_weights: np.ndarray, analytic_weights: np.ndarray,
-                         consistency_ratio: float, title: str = "Weights Comparison"):
+                         consistency_ratio: float,  nn_name: str, title: str = "Weights Comparison"):
         plt.figure(figsize=(max(self.figsize[0], 10), self.figsize[1] // 2 + 1))
         ax = plt.gca()
 
         x = np.arange(len(weights))  
         width = 0.25
 
-        rects1 = ax.bar(x - width, weights, width, label='Wagi Docelowe (Ground Truth)', color='#2ca02c', alpha=0.85)
-        rects2 = ax.bar(x, pred_weights, width, label='Wagi Sieci (NN)', color='#1f77b4', alpha=0.85)
-        rects3 = ax.bar(x + width, analytic_weights, width, label='Klasyczne AHP (EVM)', color='#d62728', alpha=0.85)
+        rects1 = ax.bar(x - width, weights, width, label='Ground Truth', color='#2ca02c', alpha=0.85)
+        rects2 = ax.bar(x, pred_weights, width, label=f'NN weights ({nn_name})', color='#1f77b4', alpha=0.85)
+        rects3 = ax.bar(x + width, analytic_weights, width, label='Classic AHP (EVM)', color='#d62728', alpha=0.85)
 
-        ax.set_ylabel('Wartość wagi (0.0 - 1.0)', fontsize=12)
+        ax.set_ylabel('Priority weight', fontsize=12)
         ax.set_title(f"{title} (CR = {consistency_ratio:.4f})", fontsize=14, pad=15)
         ax.set_xticks(x)
-        ax.set_xticklabels([f"Kryt {i+1}" for i in range(len(weights))], fontsize=11)
+        ax.set_xticklabels([f"Crit {i+1}" for i in range(len(weights))], fontsize=11)
         ax.set_ylim(0, 1.15)
         
         ax.legend(fontsize=11, loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=3)
@@ -80,16 +81,16 @@ class WeightsVisualizator():
         
 
 
-    def plot_weights(self, weights: np.ndarray, title: str = "Docelowe Wagi Priorytetów") -> None:
+    def plot_weights(self, weights: np.ndarray, title: str = "Target priority weights") -> None:
         plt.figure(figsize=(self.figsize[0], self.figsize[1] // 2))
         
-        criteria_labels = [f"Kryt {i}" for i in range(len(weights))]
+        criteria_labels = [f"Crit {i}" for i in range(len(weights))]
         ax = sns.barplot(x=criteria_labels, y=weights, palette="viridis")
     
         for i, val in enumerate(weights):
             ax.text(i, val + 0.02, f"{val:.2f}", ha='center', fontsize=10)
             
         plt.title(title, fontsize=14, pad=15)
-        plt.ylabel("Waga (0.0 - 1.0)", fontsize=12)
+        plt.ylabel("Priority weight", fontsize=12)
         plt.ylim(0, 1.0)
         plt.show()
