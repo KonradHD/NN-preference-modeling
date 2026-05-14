@@ -4,9 +4,11 @@ from abc import ABC, abstractmethod
 
 class DenseBaseLoss(nn.Module, ABC):
 
-    def __init__(self):
+    def __init__(self, lambda_cop, lambda_rec, lambda_stab):
         super(DenseBaseLoss, self).__init__()
-
+        self.lambda_cop = lambda_cop
+        self.lambda_rec = lambda_rec
+        self.lambda_stab = lambda_stab
 
     @abstractmethod
     def forward(self, logits: torch.Tensor, weights: torch.Tensor, matrix: torch.Tensor):

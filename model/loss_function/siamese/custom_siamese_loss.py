@@ -10,9 +10,9 @@ class CustomSiameseLoss(SiameseBaseLoss):
         self.mse = nn.MSELoss()
 
 
-    def COP_part(self, logits: torch.Tensor, matrices: torch.Tensor, margin=0.1):
+    def COP_part(self, logits: torch.Tensor, matrices: torch.Tensor, margin=0.5):
         score_diffs = logits.unsqueeze(2) - logits.unsqueeze(1)
-        mask = (matrices > 1.0001).float()
+        mask = (matrices > 1).float()
         
         hinge = torch.clamp(-(score_diffs) + margin, min=0.0)
         weighted_loss = hinge * mask

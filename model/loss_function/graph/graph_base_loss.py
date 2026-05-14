@@ -4,8 +4,11 @@ from abc import ABC, abstractmethod
 
 class GraphBaseLoss(nn.Module, ABC):
 
-    def __init__(self):
+    def __init__(self, lambda_cop, lambda_rec, lambda_stab):
         super(GraphBaseLoss, self).__init__()
+        self.lambda_cop = lambda_cop
+        self.lambda_rec = lambda_rec
+        self.lambda_stab = lambda_stab
 
 
     @abstractmethod
