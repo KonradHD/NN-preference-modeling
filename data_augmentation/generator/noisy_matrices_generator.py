@@ -1,6 +1,8 @@
 import numpy as np
 import os
 from data_augmentation.generator.matrices_generator import MatricesGenerator
+from utils.phase import Phase
+
 
 class NoisyMatricesGenerator(MatricesGenerator):
     def __init__(self, num_matrices: int, num_criteria: int, coherence_rate: float, dir: str | None = None):
@@ -67,15 +69,15 @@ class NoisyMatricesGenerator(MatricesGenerator):
         return self.matrices, self.target_weights
 
 
-    def save_state(self, is_uniform: bool, prefix: str = "") -> None:
+    def save_state(self, split: Phase, is_uniform: bool, prefix: str = "") -> None:
         if self.matrices is None or self.target_weights is None:
             raise ValueError("You have to generate matrices and weights first")
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._noisy_dir, "uniform")
+            saving_path = os.path.join(self._noisy_dir, "uniform", split.value)
         else: 
-            saving_path = os.path.join(self._noisy_dir, "dirichlet")
+            saving_path = os.path.join(self._noisy_dir, "dirichlet", split.value)
         
         os.makedirs(saving_path, exist_ok=True)
         coherence_rate_str = f"{self.coherence_rate:.2f}".replace(".", "")

@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 from data_augmentation.generator.matrices_generator import MatricesGenerator
-
+from utils.phase import Phase
 
 class TargetCRMatricesGenerator(MatricesGenerator):
     def __init__(self, num_matrices: int, num_criteria: int, target_cr: float, tolerance: float = 0.005, base_dir: str | None = None):
@@ -177,15 +177,15 @@ class TargetCRMatricesGenerator(MatricesGenerator):
         return np.array(matrices)
 
 
-    def save_state(self, is_uniform: bool, prefix: str = "") -> None:
+    def save_state(self, split: Phase, is_uniform: bool, prefix: str = "") -> None:
         if self.matrices is None or self.target_weights is None:
             raise ValueError("You have to generate matrices and weights first")
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._noisy_dir, "uniform")
+            saving_path = os.path.join(self._noisy_dir, "uniform", split.value)
         else: 
-            saving_path = os.path.join(self._noisy_dir, "dirichlet")
+            saving_path = os.path.join(self._noisy_dir, "dirichlet", split.value)
         
         os.makedirs(saving_path, exist_ok=True)
         target_cr_str = f"{self.target_cr:.2f}".replace(".", "")

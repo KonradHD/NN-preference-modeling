@@ -17,7 +17,7 @@ class SiameseAHPMatrixDataset(Dataset):
     def __len__(self):
         return len(self.base_matrices)
 
-
+    # TODO: generowanie macierzy porównawczych w locie
     def __getitem__(self, idx):
         m1 = self.base_matrices[idx]
         m2 = self.comparison_matrices[idx]

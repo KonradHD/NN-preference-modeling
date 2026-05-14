@@ -1,6 +1,9 @@
 import os 
 import numpy as np
 from data_augmentation.generator.matrices_generator import MatricesGenerator
+from utils.phase import Phase
+
+
 
 class CoherentMatricesGenerator(MatricesGenerator):
     def __init__(self, num_matrices: int, num_criteria: int, dir: str | None = None):
@@ -40,15 +43,15 @@ class CoherentMatricesGenerator(MatricesGenerator):
         return self.matrices, self.target_weights
 
 
-    def save_state(self, is_uniform: bool, prefix: str = ""):
+    def save_state(self, split: Phase, is_uniform: bool, prefix: str = ""):
         if self.matrices is None or self.target_weights is None:
             raise ValueError("You have to generate matrices and weights first")
         
         saving_path = ""
         if is_uniform:
-            saving_path = os.path.join(self._coherent_dir, "uniform")
+            saving_path = os.path.join(self._coherent_dir, "uniform", split.value)
         else: 
-            saving_path = os.path.join(self._coherent_dir, "dirichlet")
+            saving_path = os.path.join(self._coherent_dir, "dirichlet", split.value)
 
         os.makedirs(saving_path, exist_ok=True)
         matrices_path = os.path.join(saving_path, f"{prefix}matrices.npy")

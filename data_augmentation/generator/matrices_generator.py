@@ -2,6 +2,7 @@ from abc import ABC
 import os
 from abc import abstractmethod
 import numpy as np
+from utils.phase import Phase
 
 
 class MatricesGenerator(ABC):
@@ -26,5 +27,5 @@ class MatricesGenerator(ABC):
     
 
     @abstractmethod
-    def save_state(self, is_uniform: bool, prefix: str = ""):
+    def save_state(self, split: Phase, is_uniform: bool, prefix: str = ""):
         raise NotImplementedError()
