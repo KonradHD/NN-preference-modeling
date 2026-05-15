@@ -7,9 +7,6 @@ class DeepAHPNet(nn.Module):
         self.n = n_criteria
         self.input_dim = n_criteria * (n_criteria - 1) // 2
         
-        i, j = torch.triu_indices(n_criteria, n_criteria, offset=1)
-        self.register_buffer('triu_i', i)
-        self.register_buffer('triu_j', j)
 
         layers = []
         prev_dim = self.input_dim
@@ -26,8 +23,7 @@ class DeepAHPNet(nn.Module):
 
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        optimized_input = x[:, self.triu_i, self.triu_j]
-        features = self.feature_extractor(optimized_input)
+        features = self.feature_extractor(x)
         logits = self.head(features)
         
         return logits

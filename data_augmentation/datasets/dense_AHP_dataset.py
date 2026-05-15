@@ -8,6 +8,8 @@ class DenseAHPDataset(Dataset):
         self.targets = torch.tensor(weights, dtype=torch.float32)
         self.augment = augment
 
+        n_criteria = self.matrices.shape[1]
+        self.triu_i, self.triu_j = torch.triu_indices(n_criteria, n_criteria, offset=1)
 
     def __len__(self):
         return len(self.matrices)
@@ -24,5 +26,5 @@ class DenseAHPDataset(Dataset):
             weights = weights[perm]
 
         matrix = torch.log(matrix + 1e-8)
-        
-        return (matrix.unsqueeze(0), weights)
+        upper_triangle = matrix[self.triu_i, self.triu_j]
+        return upper_triangle, weights
