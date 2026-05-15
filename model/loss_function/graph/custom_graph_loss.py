@@ -8,19 +8,28 @@ from model.loss_function.graph.graph_base_loss import GraphBaseLoss
 
 class CustomGraphLoss(GraphBaseLoss):
 
-    def __init__(self, lambda_cop=2.0, lambda_rec=3, lambda_stab=0.5):
+    def __init__(self, n_criteria: int, lambda_cop=2.0, lambda_rec=3, lambda_stab=0.5):
         super(CustomGraphLoss, self).__init__(lambda_cop, lambda_rec, lambda_stab)
         self.mse = nn.MSELoss()
+        i, j = torch.triu_indices(n_criteria, n_criteria, offset=1)
+        self.register_buffer('triu_i', i)
+        self.register_buffer('triu_j', j)
 
 
     def COP_part(self, logits: torch.Tensor, matrices: torch.Tensor, margin: float = 0.5):
-        score_diffs = logits.unsqueeze(2) - logits.unsqueeze(1)
-        mask = (matrices > 1).float()
+        logits_i = logits[:, self.triu_i]
+        logits_j = logits[:, self.triu_j]
+        diffs = logits_i - logits_j 
         
-        hinge = torch.clamp(-(score_diffs) + margin, min=0.0)
-        weighted_loss = hinge * mask
+        mask_i_better = (matrices > 1e-8).float()
+        mask_j_better = (matrices < -1e-8).float()
         
-        valid_pairs_count = mask.sum()
+        hinge_i = torch.clamp(-diffs + margin, min=0.0) * mask_i_better
+        hinge_j = torch.clamp(diffs + margin, min=0.0) * mask_j_better
+        
+        weighted_loss = hinge_i + hinge_j
+        valid_pairs_count = mask_i_better.sum() + mask_j_better.sum()
+        
         if valid_pairs_count > 0:
             return weighted_loss.sum() / valid_pairs_count
         else:
