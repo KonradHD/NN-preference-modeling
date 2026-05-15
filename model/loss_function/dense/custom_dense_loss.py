@@ -8,7 +8,7 @@ from model.loss_function.dense.dense_base_loss import DenseBaseLoss
 
 class CustomDenseLoss(DenseBaseLoss):
 
-    def __init__(self, lambda_cop=2.0, lambda_rec=3, lambda_stab=0.5):
+    def __init__(self, lambda_cop=2.0, lambda_rec=3, lambda_stab=0.1):
         super(CustomDenseLoss, self).__init__(lambda_cop, lambda_rec, lambda_stab)
         self.mse = nn.MSELoss()
 
