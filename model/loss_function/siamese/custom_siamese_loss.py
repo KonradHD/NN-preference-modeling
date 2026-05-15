@@ -5,7 +5,7 @@ from model.loss_function.siamese.siamese_base_loss import SiameseBaseLoss
 import math
 
 class CustomSiameseLoss(SiameseBaseLoss):
-    def __init__(self, lambda_cop=1.0, lambda_rec=0.5, lambda_stab=0.5, lambda_cons=2.0):
+    def __init__(self, lambda_cop=2.0, lambda_rec=5.0, lambda_stab=0.05, lambda_cons=0.5):
         super(CustomSiameseLoss, self).__init__(lambda_cop, lambda_rec, lambda_stab, lambda_cons)
         self.mse = nn.MSELoss()
 
