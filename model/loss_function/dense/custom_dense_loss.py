@@ -62,3 +62,10 @@ class CustomDenseLoss(DenseBaseLoss):
             rec_loss * self.lambda_rec + 
             stab_loss * self.lambda_stab
         )
+    
+
+    def __str__(self):
+        cop_str = str(int(round(self.lambda_cop * 100)))
+        rec_str = str(int(round(self.lambda_rec * 100)))
+        stab_str = str(int(round(self.lambda_stab * 100)))
+        return f"cop{cop_str}_rec{rec_str}_stab{stab_str}"

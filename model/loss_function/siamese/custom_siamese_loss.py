@@ -75,3 +75,11 @@ class CustomSiameseLoss(SiameseBaseLoss):
                       self.lambda_cons * loss_cons)
         
         return total_loss
+    
+
+    def __str__(self):
+        cop_str = str(int(round(self.lambda_cop * 100)))
+        rec_str = str(int(round(self.lambda_rec * 100)))
+        stab_str = str(int(round(self.lambda_stab * 100)))
+        cons_str = str(int(round(self.lambda_cons * 100)))
+        return f"cop{cop_str}_rec{rec_str}_stab{stab_str}_cons{cons_str}"

@@ -28,3 +28,8 @@ class DenseBaseLoss(nn.Module, ABC):
     @abstractmethod
     def stability_part(self, logits: torch.Tensor):
         raise NotImplementedError()
+    
+
+    @abstractmethod
+    def __str__(self):
+        raise NotImplementedError()

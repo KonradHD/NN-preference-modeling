@@ -35,3 +35,8 @@ class SiameseBaseLoss(nn.Module, ABC):
     @abstractmethod
     def consistency_part(self, logits1: torch.Tensor, logits2: torch.Tensor):
         raise NotImplementedError()
+    
+
+    @abstractmethod
+    def __str__(self):
+        raise NotImplementedError()
