@@ -8,6 +8,7 @@ from utils.phase import Phase
 from data_augmentation.generator.target_cr_generator import TargetCRMatricesGenerator
 from data_augmentation.datasets.siamese_AHP_matrix_dataset import SiameseAHPMatrixDataset
 from data_augmentation.datasets.dense_AHP_dataset import DenseAHPDataset
+from data_augmentation.datasets.graph_AHP_dataset import GraphAHPDataset
 
 
 def load_model_weights_history(model: torch.nn.Module, model_type_name: str, loss_param: str, name: str, 
@@ -124,6 +125,42 @@ def load_valid_dataset_dnn(loader: MatricesLoader, consistency_rates: list[float
     final_matrices = np.concatenate(all_matrices, axis=0)
     final_weights = np.concatenate(all_weights, axis=0)
     dataset = DenseAHPDataset(final_matrices, final_weights, augment=False)
+
+    print(f"Validation dataset was successfully created and {len(dataset)} matrices was uploaded")
+    return dataset
+
+
+def load_train_dataset_graph(loader: MatricesLoader, consistency_rates: list[float], criteria_num: int, matrices_num: int, is_uniform: bool = True):
+    all_matrices = []
+    all_weights = []
+
+    for cr in consistency_rates:
+        matrices, weights = loader.load_noisy_cr_matrices(Phase.TRAIN, cr, is_uniform, criteria_num, matrices_num)
+
+        all_matrices.append(matrices)
+        all_weights.append(weights)
+    
+    final_matrices = np.concatenate(all_matrices, axis=0)
+    final_weights = np.concatenate(all_weights, axis=0)
+    dataset = GraphAHPDataset(final_matrices, final_weights, augment=True)
+
+    print(f"Train dataset was successfully created and {len(dataset)} matrices was uploaded")
+    return dataset
+
+
+def load_valid_dataset_graph(loader: MatricesLoader, consistency_rates: list[float], criteria_num: int, matrices_num: int, is_uniform: bool = True):
+    all_matrices = []
+    all_weights = []
+
+    for cr in consistency_rates:
+        matrices, weights = loader.load_noisy_cr_matrices(Phase.VALIDATION, cr, is_uniform, criteria_num, matrices_num)
+
+        all_matrices.append(matrices)
+        all_weights.append(weights)
+    
+    final_matrices = np.concatenate(all_matrices, axis=0)
+    final_weights = np.concatenate(all_weights, axis=0)
+    dataset = GraphAHPDataset(final_matrices, final_weights, augment=False)
 
     print(f"Validation dataset was successfully created and {len(dataset)} matrices was uploaded")
     return dataset
