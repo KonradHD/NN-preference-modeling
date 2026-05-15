@@ -1,13 +1,10 @@
-# Python3.11
+# Python 3.11 + CUDA 12.4
 --extra-index-url https://download.pytorch.org/whl/cu124
 
-torch
-torchvision
-
-numpy 
-torch
-torchvision
-matplotlib
-seaborn
-pandas
-scipy
+torch==2.5.1
+torchvision==0.20.1
+numpy==1.26.4
+matplotlib==3.9.2
+seaborn==0.13.2
+pandas==2.2.3
+scipy==1.14.1

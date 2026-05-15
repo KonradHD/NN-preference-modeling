@@ -1,7 +1,7 @@
-numpy 
-torch
-torchvision
-matplotlib
-seaborn
-pandas
-scipy
+torch==2.5.1
+torchvision==0.20.1
+numpy==1.26.4
+matplotlib==3.9.2
+seaborn==0.13.2
+pandas==2.2.3
+scipy==1.14.1

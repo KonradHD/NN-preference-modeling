@@ -39,11 +39,10 @@ class MatricesLoader():
         if loaded_len > matrices_num:
             matrices = matrices[:matrices_num]
             weights = weights[:matrices_num]
-            print(f"Successfully uploaded {matrices_num} coherent matrices")
-        
         elif loaded_len < matrices_num:
             warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
 
+        print(f"Successfully uploaded {matrices_num} coherent matrices")
         return matrices, weights
 
 
@@ -74,11 +73,10 @@ class MatricesLoader():
         if loaded_len > matrices_num:
             matrices = matrices[:matrices_num]
             weights = weights[:matrices_num]
-            print(f"Successfully uploaded {matrices_num} noised matrices (level: c{c_str}).")
-        
         elif loaded_len < matrices_num:
             warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
 
+        print(f"Successfully uploaded {matrices_num} noised matrices (level: c{c_str}).")
         return matrices, weights
     
 
