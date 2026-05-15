@@ -11,7 +11,7 @@ from model.trainers.trainer import Trainer
 class SiameseTrainer(Trainer):
     def __init__(self, model: AdvancedSiameseModel | BasicSiameseModel, optimizer: torch.optim,
                     criterion: SiameseBaseLoss, device: torch.device):
-        super().__init__(SiameseTrainer, model, optimizer, criterion, device)
+        super().__init__(model, optimizer, criterion, device)
         self._model_type = "siamese"
 
 

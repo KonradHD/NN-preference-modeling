@@ -11,7 +11,7 @@ from model.trainers.trainer import Trainer
 class DenseTrainer(Trainer):
     def __init__(self, model: DeepAHPNet, optimizer: torch.optim,
                     criterion: CustomDenseLoss, device: torch.device):
-        super().__init__(DenseTrainer, model, optimizer, criterion, device)
+        super().__init__(model, optimizer, criterion, device)
         self._model_type = "dense"
 
 

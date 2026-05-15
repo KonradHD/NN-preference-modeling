@@ -13,32 +13,32 @@ class MetricsVisualizator():
     def plot_evm_degradation(self, cr_values: np.ndarray, mae_errors: np.ndarray, kendall_taus: np.ndarray) -> None:
         df = pd.DataFrame({
             'CR': cr_values,
-            'Błąd Estymacji (MAE)': mae_errors,
-            'Korelacja Rang (Kendall Tau)': kendall_taus
+            'Estimation Error (MAE)': mae_errors,
+            'Rank Correlation (Kendall Tau)': kendall_taus
         })
 
         fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-        sns.scatterplot(data=df, x='CR', y='Błąd Estymacji (MAE)', alpha=0.4, color='royalblue', ax=axes[0])
-        sns.regplot(data=df, x='CR', y='Błąd Estymacji (MAE)', scatter=False, color='darkblue', ax=axes[0], line_kws={"linewidth": 2})
+        sns.scatterplot(data=df, x='CR', y='Estimation Error (MAE)', alpha=0.4, color='royalblue', ax=axes[0])
+        sns.regplot(data=df, x='CR', y='Estimation Error (MAE)', scatter=False, color='darkblue', ax=axes[0], line_kws={"linewidth": 2})
 
-        axes[0].axvline(0.1, color='red', linestyle='--', linewidth=1.5, label='Próg Saaty\'ego (CR=0.1)')
-        axes[0].set_title('Wzrost błędu bezwzględnego wag (MAE)', fontsize=14, pad=10)
-        axes[0].set_xlabel('Współczynnik Niespójności (CR)', fontsize=12)
-        axes[0].set_ylabel('Błąd MAE', fontsize=12)
+        axes[0].axvline(0.1, color='red', linestyle='--', linewidth=1.5, label='Saaty\'s Threshold (CR=0.1)')
+        axes[0].set_title('Absolute Weight Error Increase (MAE)', fontsize=14, pad=10)
+        axes[0].set_xlabel('Consistency Ratio (CR)', fontsize=12)
+        axes[0].set_ylabel('MAE Error', fontsize=12)
         axes[0].legend()
 
         df['CR_binned'] = df['CR'].round(2)
         
-        sns.lineplot(data=df, x='CR_binned', y='Korelacja Rang (Kendall Tau)', color='forestgreen', linewidth=2, ax=axes[1])
+        sns.lineplot(data=df, x='CR_binned', y='Rank Correlation (Kendall Tau)', color='forestgreen', linewidth=2, ax=axes[1])
         axes[1].axvline(0.1, color='red', linestyle='--', linewidth=1.5)
         
-        axes[1].set_title('Degradacja rankingu kryteriów (Kendall\'s Tau)', fontsize=14, pad=10)
-        axes[1].set_xlabel('Współczynnik Niespójności (CR)', fontsize=12)
-        axes[1].set_ylabel('Kendall Tau (1.0 = ideał)', fontsize=12)
+        axes[1].set_title('Criteria Ranking Degradation (Kendall\'s Tau)', fontsize=14, pad=10)
+        axes[1].set_xlabel('Consistency Ratio (CR)', fontsize=12)
+        axes[1].set_ylabel('Kendall Tau (1.0 = ideal)', fontsize=12)
 
         axes[1].set_ylim(0.0, 1.05) 
 
-        plt.suptitle("Analiza Odporności Klasycznego Algorytmu EVM na Szum Zniekształcający", fontsize=16, fontweight='bold', y=1.05)
+        plt.suptitle("Robustness Analysis of the Classical EVM Algorithm to Distorting Noise", fontsize=16, fontweight='bold', y=1.05)
         plt.tight_layout()
         plt.show()
 
@@ -87,23 +87,23 @@ class MetricsVisualizator():
         plt.show()
 
     
-    def display_loss(self, history: dict[str, list]) -> None:
-        if not history or 'train' not in history or not history['train']:
-            print("Błąd: Brak danych treningowych do wyświetlenia na wykresie.")
+    def display_loss(self, history: dict[str, list], model_name: str) -> None:
+        if not history or 'train_loss' not in history or not history['train_loss']:
+            print("Error: No training data available to plot.")
             return
 
-        epochs = range(1, len(history['train']) + 1)
+        epochs = range(1, len(history['train_loss']) + 1)
         plt.figure(figsize=(10, 6))
-        plt.plot(epochs, history['train'], label='Strata Treningowa (Train Loss)', 
+        plt.plot(epochs, history['train_loss'], label='Training Loss', 
                 color='#1f77b4', linewidth=2.5)
 
-        if 'valid' in history and history['valid']:
-            plt.plot(epochs, history['valid'], label='Strata Walidacyjna (Valid Loss)', 
+        if 'valid_loss' in history and history['valid_loss']:
+            plt.plot(epochs, history['valid_loss'], label='Validation Loss', 
                     color='#ff7f0e', linewidth=2.5, linestyle='--')
 
-        plt.title('Krzywe Uczenia Sieci SiameseAHP', fontsize=14, pad=15)
-        plt.xlabel('Epoka', fontsize=12)
-        plt.ylabel('Wartość Straty (Loss)', fontsize=12)
+        plt.title(f'{model_name} Learning Curves', fontsize=14, pad=15)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Loss', fontsize=12)
 
         ax = plt.gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
