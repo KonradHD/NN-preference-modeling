@@ -99,9 +99,41 @@ class MetricsVisualizator():
 
         if 'valid_loss' in history and history['valid_loss']:
             plt.plot(epochs, history['valid_loss'], label='Validation Loss', 
-                    color='#ff7f0e', linewidth=2.5, linestyle='--')
+                    color='#ff7f0e', linewidth=2.5)
 
         plt.title(f'{model_name} Learning Curves', fontsize=14, pad=15)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Loss', fontsize=12)
+
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        plt.grid(True, linestyle=':', alpha=0.7)
+        plt.legend(fontsize=11, loc='upper right')
+        plt.tight_layout()
+        plt.show()
+
+
+    def display_part_losses(self, history: dict[str, list], model_name: str) -> None:
+        epochs = range(1, len(history['train_loss']) + 1)
+        plt.figure(figsize=(10, 6))
+        if "train_cop" in history and history["train_cop"]:
+            plt.plot(epochs, history['train_cop'], label='Training COP Loss', 
+                color='#1f77b4', linewidth=2.5)
+
+        if 'train_rec' in history and history['train_rec']:
+            plt.plot(epochs, history['train_rec'], label='Training Reconstruction Loss', 
+                    color='#ff7f0e', linewidth=2.5)
+            
+        if 'train_stab' in history and history['train_stab']:
+            plt.plot(epochs, history['train_stab'], label='Training Stability Loss', 
+                    color="#3eff0e", linewidth=2.5)
+            
+        if 'train_cons' in history and history['train_cons']:
+            plt.plot(epochs, history['train_cons'], label='Training Consistency Loss', 
+                    color="#ff0e0e", linewidth=2.5)
+
+        plt.title(f'{model_name} Training loss parts', fontsize=14, pad=15)
         plt.xlabel('Epoch', fontsize=12)
         plt.ylabel('Loss', fontsize=12)
 

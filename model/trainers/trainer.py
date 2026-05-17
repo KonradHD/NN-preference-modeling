@@ -19,7 +19,7 @@ class Trainer(ABC):
         self.optimizer = optimizer
         self.criterion = criterion
         self.device = device
-        self.history = {'train_loss': [], 'valid_loss': [], 'valid_mae': []}
+        self.history = {'train_loss': [], 'valid_loss': [], 'valid_mae': [], 'train_cop': [], 'train_rec': [], 'train_stab': []}
         self._model_type: str = "unknown"
 
 

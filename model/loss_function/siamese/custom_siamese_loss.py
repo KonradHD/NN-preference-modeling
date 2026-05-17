@@ -69,12 +69,12 @@ class CustomSiameseLoss(SiameseBaseLoss):
         loss_stab = self.stability_part(logits1, logits2)
         loss_cons = self.consistency_part(logits1, logits2)
         
-        total_loss = (self.lambda_cop * loss_cop + 
-                      self.lambda_rec * loss_rec + 
-                      self.lambda_stab * loss_stab + 
-                      self.lambda_cons * loss_cons)
+        # total_loss = (self.lambda_cop * loss_cop + 
+        #               self.lambda_rec * loss_rec + 
+        #               self.lambda_stab * loss_stab + 
+        #               self.lambda_cons * loss_cons)
         
-        return total_loss
+        return (self.lambda_cop * loss_cop, self.lambda_rec * loss_rec, self.lambda_stab * loss_stab, self.lambda_cons * loss_cons)
     
 
     def __str__(self):

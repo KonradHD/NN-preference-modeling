@@ -42,7 +42,7 @@ class MatricesLoader():
         elif loaded_len < matrices_num:
             warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
 
-        print(f"Successfully uploaded {matrices_num} coherent matrices")
+        print(f"Successfully uploaded {matrices_num} coherent matrices, number of criterias: {criteria_num}")
         return matrices, weights
 
 
@@ -76,7 +76,7 @@ class MatricesLoader():
         elif loaded_len < matrices_num:
             warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
 
-        print(f"Successfully uploaded {matrices_num} noised matrices (level: c{c_str}).")
+        print(f"Successfully uploaded {matrices_num} noised matrices (level: c{c_str}, number of criterias: {criteria_num}).")
         return matrices, weights
     
 
@@ -110,7 +110,7 @@ class MatricesLoader():
         elif loaded_len < matrices_num:
             warnings.warn(f"Requested {matrices_num} matrices, but only {loaded_len} were available in the file.")
 
-        print(f"Successfully uploaded {matrices_num} noised matrices (level: cr{c_str}).")
+        print(f"Successfully uploaded {matrices_num} noised matrices (level: cr{c_str}, number of criterias: {criteria_num}).")
         return matrices, weights
 
 

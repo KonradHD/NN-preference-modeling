@@ -13,11 +13,16 @@ class SiameseTrainer(Trainer):
                     criterion: SiameseBaseLoss, device: torch.device):
         super().__init__(model, optimizer, criterion, device)
         self._model_type = "siamese"
+        self.history['train_cons'] = []
 
 
     def _train_epoch(self, train_dataloader: DataLoader, valid_dataloader: DataLoader) -> tuple[float, float, float]:
         self.model.train()
         train_epoch_loss = 0.0
+        train_epoch_cop = 0.0
+        train_epoch_rec = 0.0
+        train_epoch_stab = 0.0
+        train_epoch_cons = 0.0
         
         for batch_idx, (m1_batch, m2_batch, weights_batch) in enumerate(train_dataloader):
             m1_batch = m1_batch.to(self.device)
@@ -25,16 +30,30 @@ class SiameseTrainer(Trainer):
             weights_batch = weights_batch.to(self.device)
 
             logits1, logits2 = self.model(m1_batch, m2_batch)
-            loss = self.criterion(logits1, logits2, weights_batch, m1_batch.squeeze(1), m2_batch.squeeze(1))
+            losses = self.criterion(logits1, logits2, weights_batch, m1_batch.squeeze(1), m2_batch.squeeze(1))
+            cop, rec, stab, cons = losses
+            total_loss = sum(losses)
 
             self.optimizer.zero_grad()
-            loss.backward()
+            total_loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimizer.step()
-            train_epoch_loss += loss.item()
+            train_epoch_loss += total_loss.item()
+            train_epoch_cop += cop.item()
+            train_epoch_rec += rec.item()
+            train_epoch_stab += stab.item()
+            train_epoch_cons += cons.item()
 
         avg_train_loss = train_epoch_loss / len(train_dataloader)
+        avg_train_cop = train_epoch_cop / len(train_dataloader)
+        avg_train_rec = train_epoch_rec / len(train_dataloader)
+        avg_train_stab = train_epoch_stab / len(train_dataloader)
+        avg_train_cons = train_epoch_cons / len(train_dataloader)
         self.history['train_loss'].append(avg_train_loss)
+        self.history['train_cop'].append(avg_train_cop)
+        self.history['train_rec'].append(avg_train_rec)
+        self.history['train_stab'].append(avg_train_stab)
+        self.history['train_cons'].append(avg_train_cons)
 
         self.model.eval()
         valid_epoch_loss = 0.0
@@ -48,7 +67,8 @@ class SiameseTrainer(Trainer):
 
                 logits1, logits2 = self.model(m1_batch, m2_batch)
                 
-                val_loss = self.criterion(logits1, logits2, weights_batch, m1_batch.squeeze(1), m2_batch.squeeze(1))
+                losses = self.criterion(logits1, logits2, weights_batch, m1_batch.squeeze(1), m2_batch.squeeze(1))
+                val_loss = sum(losses)
                 valid_epoch_loss += val_loss.item()
 
                 pred_weights = F.softmax(logits1, dim=1)

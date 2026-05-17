@@ -62,9 +62,9 @@ class AdvancedAHPEncoder(nn.Module):
 
 
 class AdvancedSiameseModel(nn.Module):
-    def __init__(self, n_criteria):
+    def __init__(self, n_criteria, hidden_dim=128, num_blocks=2):
         super(AdvancedSiameseModel, self).__init__()
-        self.encoder = AdvancedAHPEncoder(n_criteria, hidden_dim=128, num_blocks=2)
+        self.encoder = AdvancedAHPEncoder(n_criteria, hidden_dim=hidden_dim, num_blocks=num_blocks)
 
     def forward(self, m1, m2):
         logits1 = self.encoder(m1)
