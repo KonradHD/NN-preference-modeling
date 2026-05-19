@@ -4,16 +4,17 @@ import torch.nn.functional as F
 from model.loss_function.siamese.siamese_base_loss import SiameseBaseLoss
 import math
 
-class CustomSiameseLoss(SiameseBaseLoss):
+class COPOptimizedSiameseLoss(SiameseBaseLoss):
     def __init__(self, lambda_cop=2.0, lambda_rec=5.0, lambda_stab=0.05, lambda_cons=0.5):
-        super(CustomSiameseLoss, self).__init__(lambda_cop, lambda_rec, lambda_stab, lambda_cons)
+        super(COPOptimizedSiameseLoss, self).__init__(lambda_cop, lambda_rec, lambda_stab, lambda_cons)
         self.mse = nn.MSELoss()
 
 
     def COP_part(self, logits: torch.Tensor, weights: torch.Tensor, margin=0.5):
         score_diffs = logits.unsqueeze(2) - logits.unsqueeze(1)
-        mask = (matrices > 1).float()
-        
+        ideal_diffs = weights.unsqueeze(2) - weights.unsqueeze(1)
+
+        mask = (ideal_diffs > 0).float()
         hinge = torch.clamp(-(score_diffs) + margin, min=0.0)
         weighted_loss = hinge * mask
         
@@ -61,8 +62,8 @@ class CustomSiameseLoss(SiameseBaseLoss):
 
     def forward(self, logits1: torch.Tensor, logits2: torch.Tensor, 
                 weights: torch.Tensor, base_matrices: torch.Tensor, comparison_matrices: torch.Tensor):
-        loss_cop1 = self.COP_part(logits1, base_matrices)
-        loss_cop2 = self.COP_part(logits2, comparison_matrices)
+        loss_cop1 = self.COP_part(logits1, weights)
+        loss_cop2 = self.COP_part(logits2, weights)
         loss_cop = (loss_cop1 + loss_cop2) / 2
         
         loss_rec = self.reconstruction_part(logits1, logits2, weights)
@@ -75,7 +76,7 @@ class CustomSiameseLoss(SiameseBaseLoss):
                       self.lambda_cons * loss_cons)
         
         return (self.lambda_cop * loss_cop, self.lambda_rec * loss_rec, self.lambda_stab * loss_stab, self.lambda_cons * loss_cons)
-
+    
 
     def __str__(self):
         cop_str = str(int(round(self.lambda_cop * 100)))

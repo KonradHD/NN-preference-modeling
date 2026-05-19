@@ -57,12 +57,13 @@ class CustomGraphLoss(GraphBaseLoss):
         rec_loss = self.reconstruction_part(logits, weights)
         stab_loss = self.stability_part(logits)
 
-        return (
+        total_loss =  (
             COP_loss * self.lambda_cop +
             rec_loss * self.lambda_rec + 
             stab_loss * self.lambda_stab
         )
-    
+        return (self.lambda_cop * COP_loss, self.lambda_rec * rec_loss, self.lambda_stab * stab_loss)
+
 
     def __str__(self):
         cop_str = str(int(round(self.lambda_cop * 100)))

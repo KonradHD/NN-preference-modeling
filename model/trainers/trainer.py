@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod 
 import torch
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import copy
 import numpy as np
 import os 
@@ -29,14 +30,26 @@ class Trainer(ABC):
     
 
     def train(self, train_dataloader: DataLoader, valid_dataloader: DataLoader, epochs: int = 500, 
-              early_stopping: bool = True, patience: int = 15) -> tuple[torch.nn.Module, dict[str, float]]:
+              early_stopping: bool = True, es_patience: int = 15, reduce_lr_on_plateau: bool = True, rlr_patience: int = 5) -> tuple[torch.nn.Module, dict[str, float]]:
         
         best_valid_loss = float('inf')
         best_model_state = None
         epochs_no_improve = 0
 
+        if reduce_lr_on_plateau:
+            scheduler = ReduceLROnPlateau(optimizer=self.optimizer, mode="min", factor=0.5, patience=rlr_patience)
+            current_lr = self.optimizer.param_groups[0]["lr"]
+
         for epoch in range(epochs):
             avg_train_loss, avg_valid_loss, avg_valid_mae = self._train_epoch(train_dataloader, valid_dataloader)
+
+            if reduce_lr_on_plateau:
+                scheduler.step(avg_valid_loss)
+
+                new_lr = self.optimizer.param_groups[0]['lr']
+                if new_lr < current_lr:
+                    print(f"Epoch number {epoch+1}: Learning Rate was reduced to {new_lr:.6f}")
+                    current_lr = new_lr
 
             if avg_valid_loss < best_valid_loss:
                 best_valid_loss = avg_valid_loss
@@ -48,7 +61,7 @@ class Trainer(ABC):
             if (epoch + 1) % 10 == 0:
                 print(f"Epoch number [{epoch+1}/{epochs}] | Train Loss: {avg_train_loss:.6f} | Valid Loss: {avg_valid_loss:.6f} | Valid MAE: {avg_valid_mae:.4f}")
 
-            if early_stopping and epochs_no_improve >= patience:
+            if early_stopping and epochs_no_improve >= es_patience:
                 print(f"\nEARLY STOPPING in epoch {epoch + 1}.")
                 break
 
