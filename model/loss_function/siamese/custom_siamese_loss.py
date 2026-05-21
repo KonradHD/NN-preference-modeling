@@ -10,7 +10,7 @@ class CustomSiameseLoss(SiameseBaseLoss):
         self.mse = nn.MSELoss()
 
 
-    def COP_part(self, logits: torch.Tensor, weights: torch.Tensor, margin=0.5):
+    def COP_part(self, logits: torch.Tensor, matrices: torch.Tensor, margin=0.5):
         score_diffs = logits.unsqueeze(2) - logits.unsqueeze(1)
         mask = (matrices > 1).float()
         
