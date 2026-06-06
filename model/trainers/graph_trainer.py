@@ -75,7 +75,8 @@ class GraphTrainer(Trainer):
 
                 logits = self.model(gnn_matrix_batch)
                 
-                val_loss = self.criterion(logits, weights_batch, loss_matrix)
+                losses = self.criterion(logits, weights_batch, loss_matrix)
+                val_loss = sum(losses)
                 valid_epoch_loss += val_loss.item()
 
                 pred_weights = F.softmax(logits, dim=1)

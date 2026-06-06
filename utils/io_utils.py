@@ -71,6 +71,29 @@ def load_train_dataset_siamese(loader: MatricesLoader, consistency_rates: list[f
     return dataset
 
 
+def load_train_dataset_siamese_wtih_opposite_cr(loader: MatricesLoader, consistency_rates: list[float], criteria_num: int, matrices_num: int, is_uniform: bool = True):
+    all_matrices = []
+    all_comparison_matrices = []
+    all_weights = []
+
+    for cr, comparison_cr in zip(consistency_rates, consistency_rates[::-1]):
+        matrices, weights = loader.load_noisy_cr_matrices(Phase.TRAIN, cr, is_uniform, criteria_num, matrices_num)
+        generator = TargetCRMatricesGenerator(matrices.shape[0], matrices.shape[1], comparison_cr)
+        comparison_matrices = generator.from_weights(weights)
+
+        all_matrices.append(matrices)
+        all_comparison_matrices.append(comparison_matrices)
+        all_weights.append(weights)
+    
+    final_matrices = np.concatenate(all_matrices, axis=0)
+    final_weights = np.concatenate(all_weights, axis=0)
+    final_comparison_matrices = np.concatenate(all_comparison_matrices, axis=0)
+    dataset = SiameseAHPMatrixDataset(final_matrices, final_comparison_matrices, final_weights)
+
+    print(f"Train dataset was successfully created and {len(dataset)} matrices was uploaded")
+    return dataset
+
+
 def load_train_dataset_dnn(loader: MatricesLoader, consistency_rates: list[float], criteria_num: int, matrices_num: int, is_uniform: bool = True):
     all_matrices = []
     all_weights = []
@@ -97,6 +120,29 @@ def load_valid_dataset_siamese(loader: MatricesLoader, consistency_rates: list[f
     for cr in consistency_rates:
         matrices, weights = loader.load_noisy_cr_matrices(Phase.VALIDATION, cr, is_uniform, criteria_num, matrices_num)
         generator = TargetCRMatricesGenerator(matrices.shape[0], matrices.shape[1], cr)
+        comparison_matrices = generator.from_weights(weights)
+
+        all_matrices.append(matrices)
+        all_comparison_matrices.append(comparison_matrices)
+        all_weights.append(weights)
+    
+    final_matrices = np.concatenate(all_matrices, axis=0)
+    final_weights = np.concatenate(all_weights, axis=0)
+    final_comparison_matrices = np.concatenate(all_comparison_matrices, axis=0)
+    dataset = SiameseAHPMatrixDataset(final_matrices, final_comparison_matrices, final_weights)
+
+    print(f"Validation dataset was successfully created and {len(dataset)} matrices was uploaded")
+    return dataset
+
+
+def load_valid_dataset_siamese_with_opposite_cr(loader: MatricesLoader, consistency_rates: list[float], criteria_num: int, matrices_num: int, is_uniform: bool = True):
+    all_matrices = []
+    all_comparison_matrices = []
+    all_weights = []
+
+    for cr, comparison_cr in zip(consistency_rates, consistency_rates[::-1]):
+        matrices, weights = loader.load_noisy_cr_matrices(Phase.VALIDATION, cr, is_uniform, criteria_num, matrices_num)
+        generator = TargetCRMatricesGenerator(matrices.shape[0], matrices.shape[1], comparison_cr)
         comparison_matrices = generator.from_weights(weights)
 
         all_matrices.append(matrices)
