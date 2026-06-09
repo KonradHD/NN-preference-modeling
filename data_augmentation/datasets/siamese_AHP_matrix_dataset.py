@@ -18,6 +18,7 @@ class SiameseAHPMatrixDataset(Dataset):
         return len(self.base_matrices)
 
     # TODO: generowanie macierzy porównawczych w locie
+    # TODO: wymagana jest permutacja wierszy i kolumn 
     def __getitem__(self, idx):
         m1 = self.base_matrices[idx]
         m2 = self.comparison_matrices[idx]

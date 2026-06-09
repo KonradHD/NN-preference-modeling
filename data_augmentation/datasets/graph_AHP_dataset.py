@@ -16,6 +16,7 @@ class GraphAHPDataset(Dataset):
         return len(self.matrices)
 
 
+#TODO: permutacja jest zbędna 
     def __getitem__(self, idx):
         matrix = self.matrices[idx]
         weights = self.targets[idx]

@@ -42,6 +42,54 @@ class MetricsVisualizator():
         plt.tight_layout()
         plt.show()
 
+    def plot_comparison_lists(self, cr_values: np.ndarray, mae_errors_analytic: np.ndarray, 
+                              kendall_taus_analytic: np.ndarray, mae_errors_nn: list[np.ndarray], 
+                              kendall_taus_nn: list[np.ndarray], nn_name: list[str]) -> None:
+        
+        dataframes = []
+        data_analytic = pd.DataFrame({
+            'CR': cr_values,
+            'MAE': mae_errors_analytic,
+            'Kendall Tau': kendall_taus_analytic,
+            'Method': 'Analytic (EVM)'
+        })
+        dataframes.append(data_analytic)
+        
+        for mae, tau, name in zip(mae_errors_nn, kendall_taus_nn, nn_name):
+            data_nn = pd.DataFrame({
+                'CR': cr_values,
+                'MAE': mae,
+                'Kendall Tau': tau,
+                'Method': name
+            })
+            dataframes.append(data_nn)
+            
+        df = pd.concat(dataframes, axis=0)
+        df['CR_binned'] = df['CR'].round(2)
+
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+        sns.lineplot(data=df, x='CR_binned', y='MAE', hue='Method', ax=axes[0], linewidth=2.5)
+        axes[0].axvline(0.1, color='red', linestyle='--', alpha=0.6, label="Saaty's Threshold")
+        axes[0].set_title('MAE Comparison\n', fontsize=14)
+        axes[0].set_xlabel('Consistency Ratio (CR)')
+        axes[0].set_ylabel('Mean Absolute Error (MAE)')
+        axes[0].grid(True, alpha=0.3)
+        axes[0].legend()
+
+        sns.lineplot(data=df, x='CR_binned', y='Kendall Tau', hue='Method', ax=axes[1], linewidth=2.5)
+        axes[1].axvline(0.1, color='red', linestyle='--', alpha=0.6)
+        axes[1].set_title('Ranking Stability (Kendall Tau)', fontsize=14)
+        axes[1].set_xlabel('Consistency Ratio (CR)')
+        axes[1].set_ylabel('Rank Correlation')
+        axes[1].set_ylim(0, 1.05)
+        axes[1].grid(True, alpha=0.3)
+        axes[1].legend()
+
+        plt.suptitle("Stability comparison: Classic algorithm vs Neural Networks", fontsize=18, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        plt.show()
+
 
     def plot_comparison(self, cr_values: np.ndarray, mae_errors_analytic: np.ndarray, 
                         kendall_taus_analytic: np.ndarray, mae_errors_nn: np.ndarray, 
