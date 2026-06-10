@@ -3,13 +3,13 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
 
-from model.architecture.siamese_residual_block import AdvancedSiameseModel
+from model.architecture.siamese_residual_block import ResidualSiameseModel
 from model.architecture.basic_siamese import BasicSiameseModel
 from model.loss_function.siamese.siamese_base_loss import SiameseBaseLoss
 from model.trainers.trainer import Trainer
 
 class SiameseTrainer(Trainer):
-    def __init__(self, model: AdvancedSiameseModel | BasicSiameseModel, optimizer: torch.optim,
+    def __init__(self, model: ResidualSiameseModel | BasicSiameseModel, optimizer: torch.optim,
                     criterion: SiameseBaseLoss, device: torch.device):
         super().__init__(model, optimizer, criterion, device)
         self._model_type = "siamese"
