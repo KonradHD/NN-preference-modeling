@@ -26,9 +26,9 @@ class ResidualBlock(nn.Module):
         return F.gelu(out + residual)
 
 
-class AdvancedAHPEncoder(nn.Module):
+class ResidualAHPEncoder(nn.Module):
     def __init__(self, n_criteria, hidden_dim=128, num_blocks=2, dropout_rate=0.1):
-        super(AdvancedAHPEncoder, self).__init__()
+        super(ResidualAHPEncoder, self).__init__()
         self.n = n_criteria
         input_dim = n_criteria * n_criteria
         
@@ -61,10 +61,10 @@ class AdvancedAHPEncoder(nn.Module):
         return logits
 
 
-class AdvancedSiameseModel(nn.Module):
+class ResidualSiameseModel(nn.Module):
     def __init__(self, n_criteria, hidden_dim=128, num_blocks=2):
-        super(AdvancedSiameseModel, self).__init__()
-        self.encoder = AdvancedAHPEncoder(n_criteria, hidden_dim=hidden_dim, num_blocks=num_blocks)
+        super(ResidualSiameseModel, self).__init__()
+        self.encoder = ResidualAHPEncoder(n_criteria, hidden_dim=hidden_dim, num_blocks=num_blocks)
 
     def forward(self, m1, m2):
         logits1 = self.encoder(m1)

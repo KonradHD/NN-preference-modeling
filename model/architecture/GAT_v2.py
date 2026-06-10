@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv
 
-class AdvancedGAT(nn.Module):
+class GATv2(nn.Module):
     def __init__(self, n_criteria, hidden_dim=64, num_heads=4, num_layers=3, dropout=0.1):
-        super(AdvancedGAT, self).__init__()
+        super(GATv2, self).__init__()
         self.n = n_criteria
         self.initial_node_features = nn.Parameter(torch.randn(1, n_criteria, hidden_dim))
         self.conv_layers = nn.ModuleList()

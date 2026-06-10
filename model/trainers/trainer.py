@@ -8,7 +8,7 @@ import numpy as np
 import os 
 import json
 
-from model.architecture.advanced_siamese import AdvancedSiameseModel
+from model.architecture.siamese_residual_block import AdvancedSiameseModel
 from model.architecture.basic_siamese import BasicSiameseModel
 from model.loss_function.siamese.siamese_base_loss import SiameseBaseLoss
 
