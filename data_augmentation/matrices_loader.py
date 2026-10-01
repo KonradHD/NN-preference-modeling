@@ -1,3 +1,4 @@
+from collections.abc import Callable
 import os
 import numpy as np
 from utils.phase import Phase
@@ -81,13 +82,15 @@ class MatricesLoader():
     
 
     def load_noisy_cr_matrices(self, split: Phase, consistency_ratio: float, is_uniform: bool,
-                                criteria_num: int, matrices_num: int) -> tuple[np.ndarray, np.ndarray]:
+                                criteria_num: int, matrices_num: int, cr_method: Callable[[np.ndarray], float]) -> tuple[np.ndarray, np.ndarray]:
         if not (0.0 <= consistency_ratio < 1.0):
             raise ValueError(f"Consistency ratio must be in range of [0, 1), given: {consistency_ratio}")
         
+        cr_method_name = cr_method.__name__ if hasattr(cr_method, '__name__') else "custom_cr"
         distribution_folder = "uniform" if is_uniform else "dirichlet"
         noisy_saving_path = os.path.join(
             self._noisy_cr_dir, 
+            cr_method_name, 
             distribution_folder, 
             f"criteria{criteria_num}", 
             split.value

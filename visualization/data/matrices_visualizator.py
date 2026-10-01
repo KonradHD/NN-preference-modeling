@@ -131,3 +131,89 @@ class MatricesVisualizator():
 
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plt.show()
+
+    def inconsistent_criteria_visualization(self, noisy_matrices: list[np.ndarray], consistency_ratio: list[float], title: str = "Inconsistent criteria comparison"):
+        num_matrices = len(noisy_matrices)
+        
+        if num_matrices == 0:
+            print("No matrices to display")
+            return
+            
+        if num_matrices != len(consistency_ratio):
+            raise ValueError(f"Data incompatibility! Given {num_matrices} matrices and {len(consistency_ratio)} CR values.")
+
+        custom_cmap = mcolors.LinearSegmentedColormap.from_list("gray_to_red", ["lightgray", "red"])
+
+        all_error_matrices = []
+        global_max_error = 0.0
+        
+        for matrix in noisy_matrices:
+            n = matrix.shape[0]
+            log_matrix = np.log(matrix)
+            cell_errors = np.zeros_like(matrix)
+            
+            for row in range(n):
+                for col in range(n):
+                    if row != col:
+                        errors = []
+                        for k in range(n):
+                            expected_val = log_matrix[row, k] + log_matrix[k, col]
+                            actual_val = log_matrix[row, col]
+                            errors.append(abs(actual_val - expected_val))
+                        cell_errors[row, col] = np.mean(errors)
+            
+            # Obliczamy niespójność dla każdego z kryteriów (średnia dla wiersza)
+            row_errors = np.mean(cell_errors, axis=1)
+            
+            # Tworzymy macierz, gdzie wiersz i kolumna danego kryterium dostają jego poziom błędu
+            criteria_error_matrix = np.zeros_like(matrix)
+            for row in range(n):
+                for col in range(n):
+                    # Bierzemy maksimum z błędu dla kryterium i oraz j, co stworzy "krzyż"
+                    criteria_error_matrix[row, col] = max(row_errors[row], row_errors[col])
+                        
+            all_error_matrices.append(criteria_error_matrix)
+            global_max_error = max(global_max_error, np.max(criteria_error_matrix))
+
+        global_max_error = max(global_max_error, 0.01)
+        cols = min(3, num_matrices)
+        rows = math.ceil(num_matrices / cols)
+
+        fig_width = max(self.figsize[0], 5 * cols)
+        fig_height = max(self.figsize[1], 4.5 * rows)
+        
+        fig, axes = plt.subplots(rows, cols, figsize=(fig_width, fig_height))
+        
+        if num_matrices == 1:
+            axes = np.array([axes])
+        axes = axes.flatten()
+
+        fig.suptitle(title, fontsize=16, fontweight='bold')
+
+        for i in range(num_matrices):
+            ax = axes[i]
+            matrix = noisy_matrices[i]
+            error_matrix = all_error_matrices[i]
+            
+            sns.heatmap(
+                error_matrix, 
+                annot=matrix, 
+                fmt=".2f", 
+                cmap=custom_cmap, 
+                vmin=0.0,
+                vmax=global_max_error,
+                ax=ax, 
+                linewidths=0.5,
+                cbar_kws={'label': 'Criteria inconsistency level', 'shrink': 0.8}
+            )
+            
+            ax.set_title(f"cr={consistency_ratio[i]:.4f}", fontsize=13, pad=10)
+            ax.set_xlabel("Criterium j", fontsize=10)
+            if i % cols == 0: 
+                ax.set_ylabel("Criterium i", fontsize=10)
+
+        for j in range(num_matrices, len(axes)):
+            fig.delaxes(axes[j])
+
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        plt.show()
