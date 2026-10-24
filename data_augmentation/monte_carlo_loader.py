@@ -5,9 +5,9 @@ Directory layout (as produced by MonteCarloDataGenerator):
   data/monte-carlo/
     criteria{n}/
       {phase}/              <- train / validation / test
-        high_consistency/   matrices.npy  weights.npy
-        moderate_consistency/
-        extreme_consistency/
+        low_inconsistency/   matrices.npy  weights.npy
+        moderate_inconsistency/
+        high_inconsistency/
 
 Usage
 -----
@@ -20,7 +20,7 @@ Usage
   # Load only specific strata
   matrices, weights = loader.load(
       Phase.TRAIN, num_criteria=5,
-      strata=["high_consistency", "moderate_consistency"]
+      strata=["low_inconsistency", "moderate_inconsistency"]
   )
 
   # Limit the number of matrices per stratum
@@ -36,9 +36,9 @@ from utils.phase import Phase
 
 
 STRATA_NAMES = [
-    "high_consistency",
-    "moderate_consistency",
-    "extreme_consistency",
+    "low_inconsistency",
+    "moderate_inconsistency",
+    "high_inconsistency",
 ]
 
 
@@ -80,8 +80,8 @@ class MonteCarloLoader:
             Matrix size n (3-9).
         strata : list[str] | None
             Names of strata to include.  If None, all three strata are loaded.
-            Valid values: ``"high_consistency"``, ``"moderate_consistency"``,
-            ``"extreme_consistency"``.
+            Valid values: ``"low_inconsistency"``, ``"moderate_inconsistency"``,
+            ``"high_inconsistency"``.
         max_per_stratum : int | None
             Maximum number of matrices to load from each stratum.
             If None, all available matrices are loaded.

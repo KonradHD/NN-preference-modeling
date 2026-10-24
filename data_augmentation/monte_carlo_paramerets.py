@@ -7,20 +7,20 @@ import numpy as np
 #   - Larger n -> exponentially more needed for good generalization
 # Total across all 7 sizes ~= 490 000
 MATRICES_PER_CRITERIA: dict[int, int] = {
-    3:  400,
-    4:  500,
-    5:  600,
-    6:  700,
-    7:  800,
-    8:  900,
-    9: 1000,
+    3: 250_000,
+    4: 350_000,
+    5: 450_000,
+    6: 550_000,
+    7: 650_000,
+    8: 750_000,
+    9: 850_000,
 }
 
 CR_STRATA: dict[str, tuple[float, float, float]] = {
     # name: (cr_min_exclusive, cr_max_inclusive, fraction_of_total)
-    "high_consistency":     (0.00, 0.10, 0.40),
-    "moderate_consistency": (0.10, 0.33, 0.50),
-    "extreme_consistency":  (0.33, float("inf"), 0.10),
+    "low_inconsistency":     (0.00, 0.10, 0.40),
+    "moderate_inconsistency": (0.10, 0.33, 0.50),
+    "high_inconsistency":  (0.33, float("inf"), 0.10),
 }
 
 SPLIT_RATIOS: dict[Phase, float] = {

@@ -30,23 +30,22 @@ PHASE_ALIASES: dict[str, str] = {
 }
 
 STRATUM_ALIASES: dict[str, str] = {
-    "high":                 "high_consistency",
-    "high_consistency":     "high_consistency",
-    "moderate":             "moderate_consistency",
-    "mod":                  "moderate_consistency",
-    "moderate_consistency": "moderate_consistency",
-    "extreme":              "extreme_consistency",
-    "ext":                  "extreme_consistency",
-    "extreme_consistency":  "extreme_consistency",
+    "low":                 "low_inconsistency",
+    "low_inconsistency":     "low_inconsistency",
+    "moderate":             "moderate_inconsistency",
+    "mod":                  "moderate_inconsistency",
+    "moderate_inconsistency": "moderate_inconsistency",
+    "high":                 "high_inconsistency",
+    "high_inconsistency":  "high_inconsistency",
     "all":                  "all",
 }
 
-STRATA_ALL = ["high_consistency", "moderate_consistency", "extreme_consistency"]
+STRATA_ALL = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
 
 STRATUM_LABELS: dict[str, str] = {
-    "high_consistency":     "High (CR <= 0.10)",
-    "moderate_consistency": "Moderate (0.10 < CR <= 0.33)",
-    "extreme_consistency":  "Extreme (CR > 0.33)",
+    "low_inconsistency":     "Low (CR <= 0.10)",
+    "moderate_inconsistency": "Moderate (0.10 < CR <= 0.33)",
+    "high_inconsistency":  "High (CR > 0.33)",
 }
 
 RANDOM_INDEX: dict[int, float] = {

@@ -58,7 +58,7 @@ def _setup_logging() -> None:
 
 def _criteria_is_complete(n: int) -> bool:
     """Return True if all 18 expected .npy files already exist for criteria n."""
-    strata = ["high_consistency", "moderate_consistency", "extreme_consistency"]
+    strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
     phases = ["train", "validation", "test"]
     for phase in phases:
         for stratum in strata:

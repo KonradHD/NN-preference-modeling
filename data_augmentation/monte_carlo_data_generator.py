@@ -13,9 +13,9 @@ Output directory layout
   data/monte-carlo/
     criteria{n}/
       train/
-        high_consistency/      matrices.npy   weights.npy
-        moderate_consistency/  matrices.npy   weights.npy
-        extreme_consistency/   matrices.npy   weights.npy
+        low_inconsistency/      matrices.npy   weights.npy
+        moderate_inconsistency/  matrices.npy   weights.npy
+        high_inconsistency/   matrices.npy   weights.npy
       validation/   (same sub-structure)
       test/         (same sub-structure)
 
@@ -100,7 +100,7 @@ class MonteCarloDataGenerator:
                 for name, (_, _, frac) in CR_STRATA.items()
             }
             diff = total_matrices - sum(needs.values())
-            needs["moderate_consistency"] += diff
+            needs["moderate_inconsistency"] += diff
 
         logger.info(
             "Generating %d matrices for criteria=%d with needs=%s",
@@ -119,29 +119,29 @@ class MonteCarloDataGenerator:
             for name in CR_STRATA
         }
 
-        low_target = needs["high_consistency"] + needs["moderate_consistency"]
+        low_target = needs["low_inconsistency"] + needs["moderate_inconsistency"]
         budget_low = max(int(low_target * 3), 100)
         generated_low = 0
         while (
-            pools["high_consistency"]["count"] < needs["high_consistency"]
-            or pools["moderate_consistency"]["count"] < needs["moderate_consistency"]
+            pools["low_inconsistency"]["count"] < needs["low_inconsistency"]
+            or pools["moderate_inconsistency"]["count"] < needs["moderate_inconsistency"]
         ) and generated_low < budget_low:
             needed_low = (
-                (needs["high_consistency"] - pools["high_consistency"]["count"])
-                + (needs["moderate_consistency"] - pools["moderate_consistency"]["count"])
+                (needs["low_inconsistency"] - pools["low_inconsistency"]["count"])
+                + (needs["moderate_inconsistency"] - pools["moderate_inconsistency"]["count"])
             )
             batch = min(self.batch_size, max(50, needed_low * 2))
             self._generate_and_route(num_criteria, sigma_low, batch, pools, needs)
             generated_low += batch
 
-        extreme_target = needs["extreme_consistency"]
+        extreme_target = needs["high_inconsistency"]
         budget_extreme = max(int(extreme_target * 5), 100)
         generated_extreme = 0
         while (
-            pools["extreme_consistency"]["count"] < needs["extreme_consistency"]
+            pools["high_inconsistency"]["count"] < needs["high_inconsistency"]
             and generated_extreme < budget_extreme
         ):
-            needed_extreme = needs["extreme_consistency"] - pools["extreme_consistency"]["count"]
+            needed_extreme = needs["high_inconsistency"] - pools["high_inconsistency"]["count"]
             batch = min(self.batch_size, max(50, needed_extreme * 3))
             self._generate_and_route(num_criteria, sigma_high, batch, pools, needs)
             generated_extreme += batch
@@ -163,34 +163,34 @@ class MonteCarloDataGenerator:
                     f"Failed to fill all strata after {max_attempts} attempts. Status: {missing_info}"
                 )
 
-            if pools["extreme_consistency"]["count"] < needs["extreme_consistency"]:
-                missing = needs["extreme_consistency"] - pools["extreme_consistency"]["count"]
+            if pools["high_inconsistency"]["count"] < needs["high_inconsistency"]:
+                missing = needs["high_inconsistency"] - pools["high_inconsistency"]["count"]
                 adaptive_sigma_extreme = max(adaptive_sigma_extreme * 1.20, adaptive_sigma_extreme + 0.15)
                 batch = min(self.batch_size, max(50, missing * 3))
                 logger.info(
-                    "Adaptive fallback for extreme_consistency: missing %d, increased sigma to %.2f",
+                    "Adaptive fallback for high_inconsistency: missing %d, increased sigma to %.2f",
                     missing,
                     adaptive_sigma_extreme,
                 )
                 self._generate_and_route(num_criteria, adaptive_sigma_extreme, batch, pools, needs)
 
-            if pools["high_consistency"]["count"] < needs["high_consistency"]:
-                missing = needs["high_consistency"] - pools["high_consistency"]["count"]
+            if pools["low_inconsistency"]["count"] < needs["low_inconsistency"]:
+                missing = needs["low_inconsistency"] - pools["low_inconsistency"]["count"]
                 adaptive_sigma_low = max(0.05, adaptive_sigma_low * 0.75)
                 batch = min(self.batch_size, max(50, missing * 3))
                 logger.info(
-                    "Adaptive fallback for high_consistency: missing %d, decreased sigma to %.2f",
+                    "Adaptive fallback for low_inconsistency: missing %d, decreased sigma to %.2f",
                     missing,
                     adaptive_sigma_low,
                 )
                 self._generate_and_route(num_criteria, adaptive_sigma_low, batch, pools, needs)
 
-            if pools["moderate_consistency"]["count"] < needs["moderate_consistency"]:
-                missing = needs["moderate_consistency"] - pools["moderate_consistency"]["count"]
+            if pools["moderate_inconsistency"]["count"] < needs["moderate_inconsistency"]:
+                missing = needs["moderate_inconsistency"] - pools["moderate_inconsistency"]["count"]
                 adaptive_sigma_moderate = 0.70
                 batch = min(self.batch_size, max(50, missing * 3))
                 logger.info(
-                    "Adaptive fallback for moderate_consistency: missing %d, using sigma=%.2f",
+                    "Adaptive fallback for moderate_inconsistency: missing %d, using sigma=%.2f",
                     missing,
                     adaptive_sigma_moderate,
                 )
@@ -199,15 +199,15 @@ class MonteCarloDataGenerator:
         logger.info(
             "Pools filled in %.1fs | high=%d mod=%d ext=%d",
             time.time() - t0,
-            pools["high_consistency"]["count"],
-            pools["moderate_consistency"]["count"],
-            pools["extreme_consistency"]["count"],
+            pools["low_inconsistency"]["count"],
+            pools["moderate_inconsistency"]["count"],
+            pools["high_inconsistency"]["count"],
         )
 
         stratum_sigma: dict[str, float] = {
-            "high_consistency": sigma_low,
-            "moderate_consistency": sigma_low,
-            "extreme_consistency": sigma_high,
+            "low_inconsistency": sigma_low,
+            "moderate_inconsistency": sigma_low,
+            "high_inconsistency": sigma_high,
         }
 
         for stratum_name in CR_STRATA:

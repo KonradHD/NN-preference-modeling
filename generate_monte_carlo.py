@@ -103,7 +103,7 @@ def _resolve_sigma(overrides: dict[int, float] | float | None, n: int) -> float 
 
 def _criteria_is_complete(output_dir: str, n: int) -> bool:
     """Return True if all 18 .npy files already exist for criteria n."""
-    strata = ["high_consistency", "moderate_consistency", "extreme_consistency"]
+    strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
     phases = ["train", "validation", "test"]
     for phase in phases:
         for stratum in strata:
