@@ -29,48 +29,13 @@ import os
 import logging
 import time
 import numpy as np
-from typing import Callable
 
 from analytic_methods.EVM_method import EVM
 from data_augmentation.generator.monte_carlo_generator import MonteCarloGenerator
 from utils.phase import Phase
+from data_augmentation.monte_carlo_paramerets import CR_STRATA, SPLIT_RATIOS, _SIGMA_LOW, _SIGMA_HIGH
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# CR thresholds & stratum proportions (from the thesis specification)
-# ---------------------------------------------------------------------------
-
-CR_STRATA: dict[str, tuple[float, float, float]] = {
-    # name: (cr_min_exclusive, cr_max_inclusive, fraction_of_total)
-    "high_consistency":     (0.00, 0.10, 0.40),
-    "moderate_consistency": (0.10, 0.33, 0.50),
-    "extreme_consistency":  (0.33, float("inf"), 0.10),
-}
-
-SPLIT_RATIOS: dict[Phase, float] = {
-    Phase.TRAIN:      0.80,
-    Phase.VALIDATION: 0.10,
-    Phase.TEST:       0.10,
-}
-
-# ---------------------------------------------------------------------------
-# Calibrated noise σ pairs for each matrix size n
-# (low_sigma is used to fill high+moderate strata; high_sigma for extreme)
-# Values were calibrated empirically so each batch covers its target stratum
-# efficiently, minimising rejection waste.
-#
-# Rule of thumb from the calibration run:
-#   low_sigma ≈ 0.7 gives ~40-60 % high + ~40-55 % moderate for most n
-#   high_sigma ≈ 1.0-1.1 gives a comfortable amount of extreme (CR > 0.33)
-# ---------------------------------------------------------------------------
-_SIGMA_LOW: dict[int, float] = {
-    3: 0.90, 4: 0.80, 5: 0.75, 6: 0.70, 7: 0.70, 8: 0.65, 9: 0.65,
-}
-_SIGMA_HIGH: dict[int, float] = {
-    3: 1.30, 4: 1.10, 5: 1.00, 6: 0.95, 7: 0.93, 8: 0.90, 9: 0.88,
-}
 
 
 class MonteCarloDataGenerator:
@@ -115,107 +80,141 @@ class MonteCarloDataGenerator:
     def generate(
         self,
         num_criteria: int,
-        total_matrices: int,
+        total_matrices: int | None = None,
         sigma_low: float | None = None,
         sigma_high: float | None = None,
+        needs: dict[str, int] | None = None,
     ) -> None:
-        """
-        Generate *total_matrices* matrices for a given *num_criteria* size,
-        stratify them by CR, split into train/val/test, and save to disk.
+        if needs is not None:
+            needs = dict(needs)
+            for stratum_name in CR_STRATA:
+                if stratum_name not in needs:
+                    raise ValueError(f"Missing required stratum key '{stratum_name}' in needs")
+            if total_matrices is None:
+                total_matrices = sum(needs.values())
+        else:
+            if total_matrices is None:
+                raise ValueError("Either total_matrices or needs must be provided.")
+            needs = {
+                name: int(total_matrices * frac)
+                for name, (_, _, frac) in CR_STRATA.items()
+            }
+            diff = total_matrices - sum(needs.values())
+            needs["moderate_consistency"] += diff
 
-        Parameters
-        ----------
-        num_criteria : int
-            Size of the AHP matrix (3–9).
-        total_matrices : int
-            Total number of matrices to generate (before stratified split).
-            This equals the final saved count across all phases and strata.
-        sigma_low : float | None
-            Override the default low-noise sigma for this criteria size.
-            If None, the value from ``_SIGMA_LOW`` is used.
-        sigma_high : float | None
-            Override the default high-noise sigma for this criteria size.
-            If None, the value from ``_SIGMA_HIGH`` is used.
-        """
         logger.info(
-            "Generating %d matrices for criteria=%d", total_matrices, num_criteria
+            "Generating %d matrices for criteria=%d with needs=%s",
+            total_matrices,
+            num_criteria,
+            needs,
         )
         t0 = time.time()
 
-        # ---- Determine per-stratum needs ----
-        needs: dict[str, int] = {
-            name: int(total_matrices * frac)
-            for name, (_, _, frac) in CR_STRATA.items()
-        }
-        # Make sure the rounding adds up to total_matrices
-        diff = total_matrices - sum(needs.values())
-        needs["moderate_consistency"] += diff  # give the remainder to the largest bin
-
-        # ---- Generate using two sigma regimes ----
-        #   "low" sigma → efficient coverage of high + moderate strata
-        #   "high" sigma → efficient coverage of extreme stratum
-        sigma_low  = sigma_low  if sigma_low  is not None else _SIGMA_LOW.get(num_criteria, 0.70)
+        sigma_low = sigma_low if sigma_low is not None else _SIGMA_LOW.get(num_criteria, 0.70)
         sigma_high = sigma_high if sigma_high is not None else _SIGMA_HIGH.get(num_criteria, 1.00)
-        logger.info(
-            "  sigma_low=%.2f  sigma_high=%.2f", sigma_low, sigma_high
-        )
+        logger.info("  sigma_low=%.2f  sigma_high=%.2f", sigma_low, sigma_high)
 
-        # Collect pools per stratum
-        pools: dict[str, tuple[list[np.ndarray], list[np.ndarray]]] = {
-            name: ([], []) for name in CR_STRATA
+        pools: dict[str, dict[str, list[np.ndarray] | int]] = {
+            name: {"matrices": [], "weights": [], "count": 0}
+            for name in CR_STRATA
         }
 
+        low_target = needs["high_consistency"] + needs["moderate_consistency"]
+        budget_low = max(int(low_target * 3), 100)
+        generated_low = 0
+        while (
+            pools["high_consistency"]["count"] < needs["high_consistency"]
+            or pools["moderate_consistency"]["count"] < needs["moderate_consistency"]
+        ) and generated_low < budget_low:
+            needed_low = (
+                (needs["high_consistency"] - pools["high_consistency"]["count"])
+                + (needs["moderate_consistency"] - pools["moderate_consistency"]["count"])
+            )
+            batch = min(self.batch_size, max(50, needed_low * 2))
+            self._generate_and_route(num_criteria, sigma_low, batch, pools, needs)
+            generated_low += batch
 
-        # Generate "low-noise" batches until high + moderate are filled
-        low_target  = needs["high_consistency"] + needs["moderate_consistency"]
-        high_target = needs["extreme_consistency"]
+        extreme_target = needs["extreme_consistency"]
+        budget_extreme = max(int(extreme_target * 5), 100)
+        generated_extreme = 0
+        while (
+            pools["extreme_consistency"]["count"] < needs["extreme_consistency"]
+            and generated_extreme < budget_extreme
+        ):
+            needed_extreme = needs["extreme_consistency"] - pools["extreme_consistency"]["count"]
+            batch = min(self.batch_size, max(50, needed_extreme * 3))
+            self._generate_and_route(num_criteria, sigma_high, batch, pools, needs)
+            generated_extreme += batch
 
-        self._fill_strata(
-            pools=pools,
-            strata_to_fill=["high_consistency", "moderate_consistency"],
-            target_counts={
-                "high_consistency": needs["high_consistency"],
-                "moderate_consistency": needs["moderate_consistency"],
-            },
-            num_criteria=num_criteria,
-            sigma=sigma_low,
-            budget_factor=3.0,  # generate up to 3× needed to fill bins
-        )
+        adaptive_sigma_low = sigma_low
+        adaptive_sigma_extreme = sigma_high
+        adaptive_sigma_moderate = (sigma_low + sigma_high) / 2.0
+        max_attempts = 150
+        attempt = 0
 
-        self._fill_strata(
-            pools=pools,
-            strata_to_fill=["extreme_consistency"],
-            target_counts={"extreme_consistency": needs["extreme_consistency"]},
-            num_criteria=num_criteria,
-            sigma=sigma_high,
-            budget_factor=5.0,  # extreme is rarer; allow more oversampling
-        )
+        while any(pools[name]["count"] < needs[name] for name in CR_STRATA):
+            attempt += 1
+            if attempt > max_attempts:
+                missing_info = {
+                    name: f"{pools[name]['count']}/{needs[name]}"
+                    for name in CR_STRATA
+                }
+                raise RuntimeError(
+                    f"Failed to fill all strata after {max_attempts} attempts. Status: {missing_info}"
+                )
 
-        def _pool_size(name: str) -> int:
-            return sum(len(a) for a in pools[name][0])
+            if pools["extreme_consistency"]["count"] < needs["extreme_consistency"]:
+                missing = needs["extreme_consistency"] - pools["extreme_consistency"]["count"]
+                adaptive_sigma_extreme = max(adaptive_sigma_extreme * 1.20, adaptive_sigma_extreme + 0.15)
+                batch = min(self.batch_size, max(50, missing * 3))
+                logger.info(
+                    "Adaptive fallback for extreme_consistency: missing %d, increased sigma to %.2f",
+                    missing,
+                    adaptive_sigma_extreme,
+                )
+                self._generate_and_route(num_criteria, adaptive_sigma_extreme, batch, pools, needs)
+
+            if pools["high_consistency"]["count"] < needs["high_consistency"]:
+                missing = needs["high_consistency"] - pools["high_consistency"]["count"]
+                adaptive_sigma_low = max(0.05, adaptive_sigma_low * 0.75)
+                batch = min(self.batch_size, max(50, missing * 3))
+                logger.info(
+                    "Adaptive fallback for high_consistency: missing %d, decreased sigma to %.2f",
+                    missing,
+                    adaptive_sigma_low,
+                )
+                self._generate_and_route(num_criteria, adaptive_sigma_low, batch, pools, needs)
+
+            if pools["moderate_consistency"]["count"] < needs["moderate_consistency"]:
+                missing = needs["moderate_consistency"] - pools["moderate_consistency"]["count"]
+                adaptive_sigma_moderate = 0.70
+                batch = min(self.batch_size, max(50, missing * 3))
+                logger.info(
+                    "Adaptive fallback for moderate_consistency: missing %d, using sigma=%.2f",
+                    missing,
+                    adaptive_sigma_moderate,
+                )
+                self._generate_and_route(num_criteria, adaptive_sigma_moderate, batch, pools, needs)
 
         logger.info(
             "Pools filled in %.1fs | high=%d mod=%d ext=%d",
             time.time() - t0,
-            _pool_size("high_consistency"),
-            _pool_size("moderate_consistency"),
-            _pool_size("extreme_consistency"),
+            pools["high_consistency"]["count"],
+            pools["moderate_consistency"]["count"],
+            pools["extreme_consistency"]["count"],
         )
 
-        # Map each stratum to the sigma regime that was used to generate it
         stratum_sigma: dict[str, float] = {
-            "high_consistency":     sigma_low,
+            "high_consistency": sigma_low,
             "moderate_consistency": sigma_low,
-            "extreme_consistency":  sigma_high,
+            "extreme_consistency": sigma_high,
         }
 
-        # ---- Concatenate, split, save ----
-        for stratum_name, (mats_list, wts_list) in pools.items():
-            if not mats_list:
-                logger.warning("Stratum '%s' is empty!", stratum_name)
+        for stratum_name in CR_STRATA:
+            if needs[stratum_name] == 0:
                 continue
-            matrices = np.concatenate(mats_list, axis=0)[: needs[stratum_name]]
-            weights  = np.concatenate(wts_list,  axis=0)[: needs[stratum_name]]
+            matrices = np.concatenate(pools[stratum_name]["matrices"], axis=0)[: needs[stratum_name]]
+            weights = np.concatenate(pools[stratum_name]["weights"], axis=0)[: needs[stratum_name]]
 
             splits = self._split(matrices, weights)
             for phase, (m_split, w_split) in splits.items():
@@ -233,80 +232,53 @@ class MonteCarloDataGenerator:
             "Done for criteria=%d. Total time: %.1fs", num_criteria, time.time() - t0
         )
 
-    # ------------------------------------------------------------------
-    # Private helpers
-    # ------------------------------------------------------------------
-
-    def _fill_strata(
+    def _route_batch(
         self,
-        pools: dict[str, tuple[list, list]],
-        strata_to_fill: list[str],
-        target_counts: dict[str, int],
+        pools: dict[str, dict[str, list[np.ndarray] | int]],
+        mats: np.ndarray,
+        wts: np.ndarray,
+        crs: np.ndarray,
+        needs: dict[str, int],
+    ) -> int:
+        added_total = 0
+        for name, (cr_min, cr_max, _) in CR_STRATA.items():
+            missing = needs[name] - pools[name]["count"]
+            if missing <= 0:
+                continue
+            if cr_max == float("inf"):
+                mask = crs > cr_min
+            else:
+                mask = (crs > cr_min) & (crs <= cr_max)
+
+            idx = np.where(mask)[0]
+            if len(idx) == 0:
+                continue
+
+            take = min(len(idx), missing)
+            sel = idx[:take]
+            pools[name]["matrices"].append(mats[sel])
+            pools[name]["weights"].append(wts[sel])
+            pools[name]["count"] += take
+            added_total += take
+        return added_total
+
+    def _generate_and_route(
+        self,
         num_criteria: int,
         sigma: float,
-        budget_factor: float,
-    ) -> None:
-        """
-        Generate batches until every stratum in *strata_to_fill* has at least
-        *target_counts[stratum]* entries, or the budget is exhausted.
-        """
+        batch_size: int,
+        pools: dict[str, dict[str, list[np.ndarray] | int]],
+        needs: dict[str, int],
+    ) -> int:
         gen = MonteCarloGenerator(
             num_criteria=num_criteria,
             alpha=self.alpha,
             noise_sigma=sigma,
         )
-        total_needed = sum(target_counts.values())
-        budget = int(total_needed * budget_factor)
-        generated = 0
+        mats, wts = gen.generate(batch_size)
+        crs = self._evm.compute_batch(mats)[1]
+        return self._route_batch(pools, mats, wts, crs, needs)
 
-        while generated < budget:
-            still_needed = {
-                name: target_counts[name] - len(pools[name][0])
-                for name in strata_to_fill
-                if len(pools[name][0]) < target_counts[name]
-            }
-            if not still_needed:
-                break
-
-            batch = min(self.batch_size, budget - generated)
-            mats, wts = gen.generate(batch)
-            crs = self._evm.compute_batch(mats)[1]
-
-            # Route each matrix to the appropriate stratum
-            for name in strata_to_fill:
-                if name not in still_needed:
-                    continue
-                cr_min, cr_max, _ = CR_STRATA[name]
-                if cr_max == float("inf"):
-                    mask = crs > cr_min
-                else:
-                    mask = (crs > cr_min) & (crs <= cr_max)
-
-                idx = np.where(mask)[0]
-                if len(idx) == 0:
-                    continue
-
-                needed = target_counts[name] - len(pools[name][0])
-                idx = idx[:needed]
-                pools[name][0].append(mats[idx])
-                pools[name][1].append(wts[idx])
-
-            generated += batch
-
-        for name in strata_to_fill:
-            filled = len(pools[name][0])
-            if filled == 0:
-                logger.warning(
-                    "Stratum '%s' could not be filled (sigma=%.2f, budget=%d). "
-                    "Try increasing budget_factor or sigma.",
-                    name, sigma, budget,
-                )
-            elif sum(len(a) for a in pools[name][0]) < target_counts[name]:
-                actual = sum(len(a) for a in pools[name][0])
-                logger.warning(
-                    "Stratum '%s': wanted %d, got only %d.",
-                    name, target_counts[name], actual,
-                )
 
     def _split(
         self,
@@ -363,6 +335,7 @@ class MonteCarloDataGenerator:
         np.save(os.path.join(save_dir, weights_fname),  weights)
 
         logger.info(
-            "Saved %5d matrices → %s  [%s | %s]",
+            "Saved %5d matrices -> %s  [%s | %s]",
             len(matrices), save_dir, matrices_fname, weights_fname,
         )
+

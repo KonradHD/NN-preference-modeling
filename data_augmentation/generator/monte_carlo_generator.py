@@ -1,11 +1,5 @@
 import numpy as np
-
-
-# Saaty's fundamental scale: 1, 2, ..., 9 and their reciprocals
-SAATY_SCALE = np.array([1, 2, 3, 4, 5, 6, 7, 8, 9], dtype=float)
-# All possible values: reciprocals + scale
-SAATY_VALUES = np.concatenate([1.0 / SAATY_SCALE[::-1][:-1], SAATY_SCALE])  # 1/9, 1/8, ..., 1, 2, ..., 9
-
+from data_augmentation.monte_carlo_paramerets import SAATY_VALUES
 
 class MonteCarloGenerator:
     """

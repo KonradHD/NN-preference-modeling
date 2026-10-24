@@ -40,6 +40,8 @@ import time
 import sys
 import os
 
+from data_augmentation.monte_carlo_paramerets import MATRICES_PER_CRITERIA
+
 
 def _setup_logging() -> None:
     logging.basicConfig(
@@ -48,22 +50,6 @@ def _setup_logging() -> None:
         datefmt="%H:%M:%S",
         handlers=[logging.StreamHandler(sys.stdout)],
     )
-
-
-# Number of matrices to generate per criteria size.
-# Follows the thesis recommendation:
-#   - Smaller n -> fewer needed (lower input dimensionality)
-#   - Larger n -> exponentially more needed for good generalization
-# Total across all 7 sizes ~= 490 000
-MATRICES_PER_CRITERIA: dict[int, int] = {
-    3:  40,
-    4:  50,
-    5:  60,
-    6:  70,
-    7:  80,
-    8:  90,
-    9: 100,
-}
 
 
 # ---------------------------------------------------------------------------
