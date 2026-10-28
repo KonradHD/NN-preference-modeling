@@ -1,1 +1,4 @@
 While generating code do not write any comments, but always explain your logic in the response. If I ask you to generate code for a specific functionality, assume that it will be a part of a larger project and try to follow the coding style and best practices used in the project.
+
+Python environment is in venv-gpu directory.
+Use git bash terminal.

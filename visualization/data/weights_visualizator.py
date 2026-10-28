@@ -47,7 +47,7 @@ class WeightsVisualizator():
         plt.figure(figsize=(max(self.figsize[0], 10), self.figsize[1] // 2 + 1))
         ax = plt.gca()
 
-        x = np.arange(len(weights))  
+        x = np.arange(len(weights))
         width = 0.25
 
         rects1 = ax.bar(x - width, weights, width, label='Ground Truth', color='#2ca02c', alpha=0.85)
@@ -56,6 +56,44 @@ class WeightsVisualizator():
 
         ax.set_ylabel('Priority weight', fontsize=12)
         ax.set_title(f"{title} (CR = {consistency_ratio:.4f})", fontsize=14, pad=15)
+        ax.set_xticks(x)
+        ax.set_xticklabels([f"Crit {i+1}" for i in range(len(weights))], fontsize=11)
+        ax.set_ylim(0, 1.15)
+        
+        ax.legend(fontsize=11, loc='upper center', bbox_to_anchor=(0.5, 1.0), ncol=3)
+
+        def autolabel(rects):
+            for rect in rects:
+                height = rect.get_height()
+                if height > 0.01:
+                    ax.annotate(f'{height:.2f}',
+                                xy=(rect.get_x() + rect.get_width() / 2, height),
+                                xytext=(0, 4),
+                                textcoords="offset points",
+                                ha='center', va='bottom', fontsize=8, fontweight='bold', rotation=90)
+
+        autolabel(rects1)
+        autolabel(rects2)
+        autolabel(rects3)
+
+        plt.tight_layout()
+        plt.show()
+
+
+    def plot_comparison_all(self, weights: np.ndarray, pred_weights: np.ndarray, analytic_weights: np.ndarray,
+                         consistency_level: str,  nn_name: str, title: str = "Weights Comparison"):
+        plt.figure(figsize=(max(self.figsize[0], 10), self.figsize[1] // 2 + 1))
+        ax = plt.gca()
+
+        x = np.arange(len(weights))
+        width = 0.25
+
+        rects1 = ax.bar(x - width, weights, width, label='Ground Truth', color='#2ca02c', alpha=0.85)
+        rects2 = ax.bar(x, pred_weights, width, label=f'NN weights ({nn_name})', color='#1f77b4', alpha=0.85)
+        rects3 = ax.bar(x + width, analytic_weights, width, label='Classic AHP (EVM)', color='#d62728', alpha=0.85)
+
+        ax.set_ylabel('Priority weight', fontsize=12)
+        ax.set_title(f"{title} - {consistency_level.capitalize()} Inconsistency Level", fontsize=14, pad=15)
         ax.set_xticks(x)
         ax.set_xticklabels([f"Crit {i+1}" for i in range(len(weights))], fontsize=11)
         ax.set_ylim(0, 1.15)

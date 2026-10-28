@@ -208,5 +208,6 @@ marimo/_lsp/
 __marimo__/
 
 /venv-gpu
-
+/data/monte-carlo/criteria9/train/*
+/data/monte-carlo/criteria8/train/*
 # models/

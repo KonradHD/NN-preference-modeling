@@ -181,6 +181,10 @@ class MetricsVisualizator():
             plt.plot(epochs, history['train_cons'], label='Training Consistency Loss', 
                     color="#ff0e0e", linewidth=2.5)
 
+        if 'train_fit' in history and history['train_fit']:
+            plt.plot(epochs, history['train_fit'], label='Training Reconstruction Loss', 
+                    color="#ff7f0e", linewidth=2.5)
+
         plt.title(f'{model_name} Training loss parts', fontsize=14, pad=15)
         plt.xlabel('Epoch', fontsize=12)
         plt.ylabel('Loss', fontsize=12)

@@ -1,3 +1,4 @@
+from PIL import TiffImagePlugin
 from abc import ABC
 from abc import abstractmethod 
 import torch
@@ -7,18 +8,27 @@ import copy
 import numpy as np
 import os 
 import json
+import time
 
-from model.loss_function.siamese.siamese_base_loss import SiameseBaseLoss
+from model.loss_function.dense_monte_carlo.MC_base_loss import MCBaseLoss
 
 
 class Trainer(ABC):
     def __init__(self, model: torch.nn.Module, optimizer: torch.optim,
-                    criterion: SiameseBaseLoss, device: torch.device):
+                    criterion: MCBaseLoss, device: torch.device):
         self.model = model.to(device)
         self.optimizer = optimizer
         self.criterion = criterion
         self.device = device
-        self.history = {'train_loss': [], 'valid_loss': [], 'valid_mae': [], 'train_cop': [], 'train_rec': [], 'train_stab': []}
+        self.history = {
+            'train_loss': [], 
+            'valid_loss': [], 
+            'valid_mae': [], 
+            'train_cop': [], 
+            'train_rec': [], 
+            'train_stab': [], 
+            'train_fit': []
+        }
         self._model_type: str = "unknown"
 
 
@@ -29,10 +39,20 @@ class Trainer(ABC):
 
     def train(self, train_dataloader: DataLoader, valid_dataloader: DataLoader, epochs: int = 500, 
               early_stopping: bool = True, es_patience: int = 15, reduce_lr_on_plateau: bool = True, rlr_patience: int = 5) -> tuple[torch.nn.Module, dict[str, float]]:
-        
+
         best_valid_loss = float('inf')
         best_model_state = None
         epochs_no_improve = 0
+        self.history["epochs"] = epochs
+        self.history["early_stopping"] = early_stopping
+        self.history["es_patience"] = es_patience
+        self.history["reduce_lr_on_plateau"] = reduce_lr_on_plateau
+        self.history["rlr_patience"] = rlr_patience
+        self.history["criterion"] = str(self.criterion)
+        self.history["learning_rates"] = []
+        self.history.update(self.criterion.get_config())
+
+        start_time = time.time()
 
         if reduce_lr_on_plateau:
             scheduler = ReduceLROnPlateau(optimizer=self.optimizer, mode="min", factor=0.5, patience=rlr_patience)
@@ -48,6 +68,8 @@ class Trainer(ABC):
                 if new_lr < current_lr:
                     print(f"Epoch number {epoch+1}: Learning Rate was reduced to {new_lr:.6f}")
                     current_lr = new_lr
+            
+            self.history["learning_rates"].append(self.optimizer.param_groups[0]['lr'])
 
             if avg_valid_loss < best_valid_loss:
                 best_valid_loss = avg_valid_loss
@@ -60,11 +82,16 @@ class Trainer(ABC):
                 print(f"Epoch number [{epoch+1}/{epochs}] | Train Loss: {avg_train_loss:.6f} | Valid Loss: {avg_valid_loss:.6f} | Valid MAE: {avg_valid_mae:.4f}")
 
             if early_stopping and epochs_no_improve >= es_patience:
+                self.history["epochs"] = epoch + 1
                 print(f"\nEARLY STOPPING in epoch {epoch + 1}.")
                 break
 
+        end_time = time.time()
+        self.history['train_time'] = end_time - start_time
+
         if best_model_state is not None:
             self.model.load_state_dict(best_model_state)
+            self.history["best_valid_loss"] = best_valid_loss
             print(f"Wages are restored to the best valid loss: {best_valid_loss:.6f}")
 
         return self.model, self.history
@@ -94,3 +121,20 @@ class Trainer(ABC):
             json.dump(self.history, file, indent=4)
             
         print(f"History and model: {name} was saved in {dir_path}")
+
+
+    def save_state_criteria(self, criteria_num: int, base_dir: str = "models"):
+        dir_path = os.path.join(base_dir, self._model_type, f"criteria{criteria_num}")
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        criterion_str = str(self.criterion)
+        model_path = os.path.join(dir_path, "model", f"{criterion_str}.pth")
+        history_path = os.path.join(dir_path, "history", f"{criterion_str}.json")
+
+        torch.save(self.model.state_dict(), model_path)
+        with open(history_path, "w", encoding="utf-8") as file:
+            json.dump(self.history, file, indent=4)
+            
+        print(f"History and model: {criterion_str} was saved in {dir_path}")
