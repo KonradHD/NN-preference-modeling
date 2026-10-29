@@ -55,9 +55,9 @@ def compare_results_strata(solver, evaluator, matrices, weights, predicted_prior
         all_mae_nn.append(mean_mae_nn)
         all_kendall_taus_nn.append(mean_tau_nn)
 
-        print(f"Stratum '{stratum_name}': Mean CR = {mean_cr:.4f}")
-        print(f"  MAE: EVM = {mean_mae_evm:.4f} | NN = {mean_mae_nn:.4f}")
-        print(f"  Kendall Tau: EVM = {mean_tau_evm:.4f} | NN = {mean_tau_nn:.4f}\n")
+        # print(f"Stratum '{stratum_name}': Mean CR = {mean_cr:.4f}")
+        # print(f"  MAE: EVM = {mean_mae_evm:.4f} | NN = {mean_mae_nn:.4f}")
+        # print(f"  Kendall Tau: EVM = {mean_tau_evm:.4f} | NN = {mean_tau_nn:.4f}\n")
 
     final_cr = np.array(all_cr)
     final_mae_evm = np.array(all_mae_evm)
@@ -65,10 +65,10 @@ def compare_results_strata(solver, evaluator, matrices, weights, predicted_prior
     final_mae_nn = np.array(all_mae_nn)
     final_kendall_taus_nn = np.array(all_kendall_taus_nn)
 
-    print("--- GLOBAL EXPERIMENT RESULTS ---")
-    print(f"Global mean CR: {np.mean(final_cr):.4f}")
-    print(f"Global mean MAE: EVM = {np.mean(final_mae_evm):.4f}, NN = {np.mean(final_mae_nn):.4f}")
-    print(f"Global mean Kendall Tau: EVM = {np.mean(final_kendall_taus_evm):.4f}, NN = {np.mean(final_kendall_taus_nn):.4f}")
+    # print("--- GLOBAL EXPERIMENT RESULTS ---")
+    # print(f"Global mean CR: {np.mean(final_cr):.4f}")
+    # print(f"Global mean MAE: EVM = {np.mean(final_mae_evm):.4f}, NN = {np.mean(final_mae_nn):.4f}")
+    # print(f"Global mean Kendall Tau: EVM = {np.mean(final_kendall_taus_evm):.4f}, NN = {np.mean(final_kendall_taus_nn):.4f}")
 
     viz = MetricsVisualizator()
     viz.plot_comparison(final_cr, final_mae_evm, final_kendall_taus_evm, final_mae_nn, final_kendall_taus_nn, nn_name)
