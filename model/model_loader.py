@@ -4,11 +4,13 @@ import json
 
 
 class ModelLoader:
-    def __init__(self, base_dir: str | None = None):
+    def __init__(self, base_dir: str | None = None, device: torch.device | str | None = None):
         self.base_dir = base_dir or "models"
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-    def load_dense_MC(self, model: torch.nn.Module, criteria_num: int,  criterion: str) -> tuple[torch.nn.Module, dict[str, list]]:
+    def load_dense_MC(self, model: torch.nn.Module, criteria_num: int,  criterion: str, device: torch.device | str | None = None) -> tuple[torch.nn.Module, dict[str, list]]:
+        target_device = device or self.device
         model_type = "dense_monte_carlo"
         dir_path = os.path.join(self.base_dir, model_type, f"criteria{criteria_num}")
     
@@ -21,7 +23,8 @@ class ModelLoader:
         with open(history_path, "r", encoding="utf-8") as file:
             history = json.load(file)
 
-        model.load_state_dict(torch.load(model_path, weights_only=True))
+        model.load_state_dict(torch.load(model_path, map_location=target_device, weights_only=True))
+        model.to(target_device)
         print(f"History and model: {criterion} loaded from {dir_path}")
         
         return model, history
