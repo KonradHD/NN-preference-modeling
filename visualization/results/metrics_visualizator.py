@@ -134,6 +134,37 @@ class MetricsVisualizator():
         plt.tight_layout()
         plt.show()
 
+    def display_learning_metric(self, history: dict[str, list], metric: str, model_name: str) -> None:
+        metric_upper = metric.upper()
+        train_key = f'train_{metric}'
+        valid_key = f'valid_{metric}'
+
+        if train_key not in history or not history[train_key]:
+            print(f"Error: No '{train_key}' data available to plot.")
+            return
+
+        epochs = range(1, len(history[train_key]) + 1)
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(epochs, history[train_key], label=f'Training {metric_upper}',
+                 color='#1f77b4', linewidth=2.5)
+
+        if valid_key in history and history[valid_key]:
+            plt.plot(epochs, history[valid_key], label=f'Validation {metric_upper}',
+                     color='#ff7f0e', linewidth=2.5)
+
+        plt.title(f'{model_name} — {metric_upper} Learning Curve', fontsize=14, pad=15)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel(metric_upper, fontsize=12)
+
+        ax = plt.gca()
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+        plt.grid(True, linestyle=':', alpha=0.7)
+        plt.legend(fontsize=11, loc='upper right')
+        plt.tight_layout()
+        plt.show()
+
     
     def display_loss(self, history: dict[str, list], model_name: str) -> None:
         if not history or 'train_loss' not in history or not history['train_loss']:
@@ -196,3 +227,51 @@ class MetricsVisualizator():
         plt.legend(fontsize=11, loc='upper right')
         plt.tight_layout()
         plt.show()
+
+    def plot_top1_spearman(self, cr_values: np.ndarray, top1_hit_rate_analytic: np.ndarray,
+                           top1_hit_rate_nn: np.ndarray, spearman_analytic: np.ndarray,
+                           spearman_nn: np.ndarray, nn_name: str) -> None:
+        data_analytic = pd.DataFrame({
+            'CR': cr_values,
+            'Top-1 Hit Rate': top1_hit_rate_analytic,
+            'Spearman': spearman_analytic,
+            'Method': 'Analytic (EVM)'
+        })
+
+        data_nn = pd.DataFrame({
+            'CR': cr_values,
+            'Top-1 Hit Rate': top1_hit_rate_nn,
+            'Spearman': spearman_nn,
+            'Method': nn_name
+        })
+
+        df = pd.concat([data_analytic, data_nn], axis=0)
+        df['CR_binned'] = df['CR'].round(2)
+
+        fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+        sns.lineplot(data=df, x='CR_binned', y='Top-1 Hit Rate', hue='Method',
+                     palette=['royalblue', 'orange'], ax=axes[0], linewidth=2.5)
+        axes[0].axvline(0.1, color='red', linestyle='--', alpha=0.6, label="Saaty's Threshold")
+        axes[0].axhline(1.0, color='gray', linestyle=':', alpha=0.4)
+        axes[0].set_title('Top-1 Criterion Identification Rate\n', fontsize=14)
+        axes[0].set_xlabel('Consistency Ratio (CR)')
+        axes[0].set_ylabel('Top-1 Hit Rate')
+        axes[0].set_ylim(0.0, 1.05)
+        axes[0].grid(True, alpha=0.3)
+        axes[0].legend()
+
+        sns.lineplot(data=df, x='CR_binned', y='Spearman', hue='Method',
+                     palette=['forestgreen', 'darkred'], ax=axes[1], linewidth=2.5)
+        axes[1].axvline(0.1, color='red', linestyle='--', alpha=0.6)
+        axes[1].set_title('Ranking Stability (Spearman ρ)', fontsize=14)
+        axes[1].set_xlabel('Consistency Ratio (CR)')
+        axes[1].set_ylabel('Spearman ρ')
+        axes[1].set_ylim(0, 1.05)
+        axes[1].grid(True, alpha=0.3)
+        axes[1].legend()
+
+        plt.suptitle(f'Stability comparison: Classic algorithm vs {nn_name}', fontsize=18, fontweight='bold', y=1.02)
+        plt.tight_layout()
+        plt.show()
+

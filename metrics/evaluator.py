@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import kendalltau
+from scipy.stats import kendalltau, spearmanr
 
 class Evaluator:
     """
@@ -28,8 +28,39 @@ class Evaluator:
             return 0.0
             
         return float(tau)
+    
+    @staticmethod
+    def calculate_top1_hit_rate(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+        """
+        Oblicza Top-1 Hit Rate dla pojedynczego wektora wag.
+        Zwraca 1.0, jeśli element o najwyższej wadze w wektorze referencyjnym (y_true) 
+        został wytypowany jako najważniejszy w wektorze estymowanym (y_pred), 
+        w przeciwnym razie 0.0.
+        """
+        if y_true.size == 0 or y_pred.size == 0:
+            return 0.0
 
-    def evaluate_batch(self, y_true_batch: np.ndarray, y_pred_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        top_pred_idx = np.argmax(y_pred)
+        max_true_val = np.max(y_true)
+        top_true_indices = np.where(y_true == max_true_val)[0]
+        return 1.0 if top_pred_idx in top_true_indices else 0.0
+
+    @staticmethod
+    def calculate_spearmans_rank(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+        """
+        Oblicza korelację rang Spearmana dla pojedynczego wektora wag.
+        Ocenia siłę zależności monotonicznej, mocniej karząc duże przetasowania w rankingu 
+        (np. zepchnięcie najważniejszego kryterium na sam dół).
+        Zakres: 1.0 (idealna kolejność), 0.0 (losowa), -1.0 (odwrotna).
+        """
+        rho, p_value = spearmanr(y_true, y_pred)
+        
+        if np.isnan(rho):
+            return 0.0
+            
+        return float(rho)
+
+    def evaluate_batch(self, y_true_batch: np.ndarray, y_pred_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Przetwarza cały zbiór (batch) wektorów na raz.
         
@@ -47,12 +78,16 @@ class Evaluator:
         num_samples = y_true_batch.shape[0]
         mae_scores = np.zeros(num_samples)
         tau_scores = np.zeros(num_samples)
+        top1_scores = np.zeros(num_samples)
+        spearman = np.zeros(num_samples)
 
         for i in range(num_samples):
             mae_scores[i] = self.calculate_mae(y_true_batch[i], y_pred_batch[i])
             tau_scores[i] = self.calculate_kendall_tau(y_true_batch[i], y_pred_batch[i])
+            # top1_scores[i] = self.calculate_top1_hit_rate(y_true_batch[i], y_pred_batch[i])
+            # spearman[i] = self.calculate_spearmans_rank(y_true_batch[i], y_pred_batch[i])
 
-        return mae_scores, tau_scores
+        return mae_scores, tau_scores, top1_scores, spearman
     
 
     def evaluate_single(self, y_true: np.ndarray, y_pred: np.ndarray):
@@ -64,5 +99,7 @@ class Evaluator:
 
         mae = self.calculate_mae(y_true_flat, y_pred_flat)
         tau = self.calculate_kendall_tau(y_true_flat, y_pred_flat)
+        top1 = self.calculate_top1_hit_rate(y_true_flat, y_pred_flat)
+        spearman = self.calculate_spearmans_rank(y_true_flat, y_pred_flat)
 
-        return mae, tau
+        return mae, tau, top1, spearman

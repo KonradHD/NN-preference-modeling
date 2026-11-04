@@ -97,6 +97,8 @@ class DenseMonteCarloTrainer(Trainer):
         train_epoch_cop = 0.0
         train_epoch_fit = 0.0
         train_epoch_stab = 0.0
+        train_epoch_mae = 0.0
+        train_epoch_mse = 0.0
 
         for batch_idx, (matrix_batch, weights_batch) in enumerate(train_dataloader):
             matrix_batch = matrix_batch.to(self.device)
@@ -121,19 +123,29 @@ class DenseMonteCarloTrainer(Trainer):
 
             train_epoch_loss += total_loss.item()
 
+            with torch.no_grad():
+                pred_weights = F.softmax(logits, dim=-1)
+                train_epoch_mae += torch.abs(pred_weights - weights_batch).mean().item()
+                train_epoch_mse += ((pred_weights - weights_batch) ** 2).mean().item()
+
         avg_train_loss = train_epoch_loss / len(train_dataloader)
         avg_train_cop = train_epoch_cop / len(train_dataloader)
         avg_train_fit = train_epoch_fit / len(train_dataloader)
         avg_train_stab = train_epoch_stab / len(train_dataloader)
+        avg_train_mae = train_epoch_mae / len(train_dataloader)
+        avg_train_mse = train_epoch_mse / len(train_dataloader)
 
         self.history["train_loss"].append(avg_train_loss)
         self.history["train_cop"].append(avg_train_cop)
         self.history["train_fit"].append(avg_train_fit)
         self.history["train_stab"].append(avg_train_stab)
+        self.history["train_mae"].append(avg_train_mae)
+        self.history["train_mse"].append(avg_train_mse)
 
         self.model.eval()
         valid_epoch_loss = 0.0
         valid_epoch_mae = 0.0
+        valid_epoch_mse = 0.0
 
         with torch.no_grad():
             for matrix_batch, weights_batch in valid_dataloader:
@@ -151,14 +163,16 @@ class DenseMonteCarloTrainer(Trainer):
                 valid_epoch_loss += val_loss.item()
 
                 pred_weights = F.softmax(logits, dim=-1)
-                mae = torch.abs(pred_weights - weights_batch).mean()
-                valid_epoch_mae += mae.item()
+                valid_epoch_mae += torch.abs(pred_weights - weights_batch).mean().item()
+                valid_epoch_mse += ((pred_weights - weights_batch) ** 2).mean().item()
 
         avg_valid_loss = valid_epoch_loss / len(valid_dataloader)
         avg_valid_mae = valid_epoch_mae / len(valid_dataloader)
+        avg_valid_mse = valid_epoch_mse / len(valid_dataloader)
 
         self.history["valid_loss"].append(avg_valid_loss)
         self.history["valid_mae"].append(avg_valid_mae)
+        self.history["valid_mse"].append(avg_valid_mse)
 
         return avg_train_loss, avg_valid_loss, avg_valid_mae
 

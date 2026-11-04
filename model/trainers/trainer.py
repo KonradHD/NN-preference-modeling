@@ -23,7 +23,10 @@ class Trainer(ABC):
         self.history = {
             'train_loss': [], 
             'valid_loss': [], 
-            'valid_mae': [], 
+            'valid_mae': [],
+            'valid_mse': [],
+            'train_mse': [], 
+            'train_mae': [],
             'train_cop': [], 
             'train_rec': [], 
             'train_stab': [], 
