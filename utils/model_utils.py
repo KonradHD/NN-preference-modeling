@@ -3,6 +3,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import kendalltau
+import torch.optim as optim
+
+from model.architecture.dense_monte_carlo import DenseMonteCarloNet
+from model.loss_function.dense_monte_carlo.custom_dense_MC_loss import CustomDenseMCLoss
+from model.model_loader import ModelLoader
+from model.trainers.dense_monte_carlo_trainer import DenseMonteCarloTrainer
 from visualization.results.metrics_visualizator import MetricsVisualizator
 from utils.loss_function_parameters import LossParameters, LossParametersMapper
 
@@ -99,12 +105,14 @@ def compare_results_strata(solver, evaluator, matrices, weights, predicted_prior
 def compare_mean_mae_models(
         true_weights: dict[str, np.ndarray], 
         predicted_priority_weights: dict[str, list[np.ndarray]],
-        nn_names: list[str]
+        nn_names: list[str],
+        legend_title: str = "Metody obliczania wag"
     ) -> pd.DataFrame:
     strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
+    strata_pol = ['Niska niespójność', "Umiarkowana niespójność", "Wysoka niespójność"]
     records = []
 
-    for stratum in strata:
+    for stratum, stratum_pol in zip(strata, strata_pol):
         if stratum not in true_weights or stratum not in predicted_priority_weights:
             continue
         y_true = np.asarray(true_weights[stratum])
@@ -124,7 +132,7 @@ def compare_mean_mae_models(
 
             mae = float(np.mean(np.abs(y_true_squeezed - y_pred)))
             records.append({
-                "Stratum": stratum.replace("_", " ").title(),
+                "Stratum": stratum_pol,
                 "Model": name,
                 "Mean MAE": mae
             })
@@ -148,13 +156,13 @@ def compare_mean_mae_models(
     for container in ax.containers:
         ax.bar_label(container, fmt="%.4f", padding=3, fontsize=font_sz, rotation=label_rot)
 
-    plt.title("Porównanie średniego błędu MAE modeli dla warstw niespójności", fontsize=14, pad=15)
-    plt.xlabel("Poziom niespójności (Stratum)", fontsize=12)
+    plt.title("Porównanie średniego błędu MAE modeli dla poziomu niespójności", fontsize=14, pad=15)
+    plt.xlabel("Poziom niespójności", fontsize=12)
     plt.ylabel("Średnie MAE", fontsize=12)
     max_val = df["Mean MAE"].max() if not df.empty else 1.0
-    y_mult = 1.25 if len(nn_names) > 6 else 1.15
+    y_mult = 1.55 if len(nn_names) > 6 else 1.45
     plt.ylim(0, max_val * y_mult)
-    plt.legend(title="Model", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=9)
+    plt.legend(title=legend_title, loc="upper left", fontsize=9)
     plt.tight_layout()
     plt.show()
 
@@ -164,12 +172,14 @@ def compare_mean_mae_models(
 def compare_kendal_tau_models(
         true_weights: dict[str, np.ndarray], 
         predicted_priority_weights: dict[str, list[np.ndarray]],
-        nn_names: list[str]
+        nn_names: list[str],
+        legend_title: str = "Metody obliczania wag"
     ) -> pd.DataFrame:
     strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
+    strata_pol = ['Niska niespójność', "Umiarkowana niespójność", "Wysoka niespójność"]
     records = []
 
-    for stratum in strata:
+    for stratum, stratum_pol in zip(strata, strata_pol):
         if stratum not in true_weights or stratum not in predicted_priority_weights:
             continue
         y_true = np.asarray(true_weights[stratum])
@@ -197,7 +207,7 @@ def compare_kendal_tau_models(
 
             mean_tau = float(np.mean(taus)) if taus else 0.0
             records.append({
-                "Stratum": stratum.replace("_", " ").title(),
+                "Stratum": stratum_pol,
                 "Model": name,
                 "Kendall Tau": mean_tau
             })
@@ -221,11 +231,11 @@ def compare_kendal_tau_models(
     for container in ax.containers:
         ax.bar_label(container, fmt="%.4f", padding=3, fontsize=font_sz, rotation=label_rot)
 
-    plt.title("Porównanie korelacji rang Kendalla modeli dla warstw niespójności", fontsize=14, pad=15)
-    plt.xlabel("Poziom niespójności (Stratum)", fontsize=12)
-    plt.ylabel("Kendall Tau", fontsize=12)
-    plt.ylim(0, 1.25)
-    plt.legend(title="Model", bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=9)
+    plt.title("Porównanie korelacji rang Kendalla modeli dla poziomów niespójności", fontsize=14, pad=15)
+    plt.xlabel("Poziom niespójności", fontsize=14)
+    plt.ylabel("Kendall Tau", fontsize=14)
+    plt.ylim(0, 1)
+    plt.legend(title=legend_title, loc="upper right", fontsize=9)
     plt.tight_layout()
     plt.show()
 
@@ -402,6 +412,11 @@ def plot_grid_search_heatmap(
     loss_param2: str = LossParameters.FIT_WEIGHT
 ) -> None:
     df_stratum = grid_results_df[grid_results_df["stratum"] == stratum_name]
+    stratum_translate = {
+        "low_inconsistency": "niskim poziomie niespójności",
+        "moderate_inconsistency": "umiarkowanym poziomie niespójności",
+        "high_inconsistency": "wysokim poziomie niespójności"
+    }
 
     if df_stratum.empty:
         print(f"Brak danych dla warstwy: {stratum_name}")
@@ -427,7 +442,9 @@ def plot_grid_search_heatmap(
         linewidths=0.5,
         linecolor="white"
     )
-    plt.title(f"{metric_label} — warstwa: {stratum_name.replace('_', ' ').title()}", fontsize=13)
+
+    title = f'Wartości {metric_label} dla zbioru o {stratum_translate.get(stratum_name)}' if value_metric == "kendall_tau" else f'Błędy {metric_label} dla zbioru o {stratum_translate.get(stratum_name)}' 
+    plt.title(title, fontsize=13)
     plt.xlabel(LossParametersMapper.get(loss_param2, loss_param2), fontsize=11)
     plt.ylabel(LossParametersMapper.get(loss_param1, loss_param1), fontsize=11)
     plt.tight_layout()
@@ -458,7 +475,7 @@ def plot_mean_results_heatmap(
         linewidths=0.5,
         linecolor="white"
     )
-    plt.title(f"{metric_label} — średnia po wszystkich warstwach niespójności", fontsize=13)
+    plt.title(f"Średnia błędów {metric_label} ze wszystkich poziomów niespójności", fontsize=13)
     plt.xlabel(LossParametersMapper.get(loss_param2, loss_param2), fontsize=11)
     plt.ylabel(LossParametersMapper.get(loss_param1, loss_param1), fontsize=11)
     plt.tight_layout()
@@ -516,3 +533,16 @@ def plot_mean_results_heatmap_3_params(
     fig.suptitle(f"{metric_label} — średnia po wszystkich warstwach niespójności", fontsize=14)
     plt.tight_layout()
     plt.show()
+
+def get_predictor(device, cop, fit, stab, margin, p, cop_mode, stab_mode, normalize, lr, criteria_num):
+    criterion_str = criterion_to_str(cop, fit, stab, margin, p, cop_mode, stab_mode, normalize)
+    model_loader = ModelLoader()
+    empty_model = DenseMonteCarloNet(n_criteria=criteria_num)
+    model, history = model_loader.load_dense_MC(empty_model, criteria_num, criterion_str)
+    criterion = CustomDenseMCLoss(n_criteria=criteria_num, lambda_cop=cop, lambda_fit=fit, 
+        lambda_stab=stab, p=p, normalize_initial_loss=normalize, margin=margin,
+        cop_mode=cop_mode, stab_mode=stab_mode).to(device)
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+    trainer = DenseMonteCarloTrainer(model, optimizer, criterion, device)
+
+    return trainer, criterion_str

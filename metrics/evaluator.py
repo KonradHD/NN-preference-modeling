@@ -60,7 +60,7 @@ class Evaluator:
             
         return float(rho)
 
-    def evaluate_batch(self, y_true_batch: np.ndarray, y_pred_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def evaluate_batch(self, y_true_batch: np.ndarray, y_pred_batch: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray,  np.ndarray]:
         """
         Przetwarza cały zbiór (batch) wektorów na raz.
         

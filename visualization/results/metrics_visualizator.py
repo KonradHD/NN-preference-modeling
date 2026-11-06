@@ -134,7 +134,7 @@ class MetricsVisualizator():
         plt.tight_layout()
         plt.show()
 
-    def display_learning_metric(self, history: dict[str, list], metric: str, model_name: str) -> None:
+    def display_learning_metric(self, history: dict[str, list], metric: str, model_name: str = None) -> None:
         metric_upper = metric.upper()
         train_key = f'train_{metric}'
         valid_key = f'valid_{metric}'
@@ -146,15 +146,16 @@ class MetricsVisualizator():
         epochs = range(1, len(history[train_key]) + 1)
 
         plt.figure(figsize=(10, 6))
-        plt.plot(epochs, history[train_key], label=f'Training {metric_upper}',
+        plt.plot(epochs, history[train_key], label=f'Treningowa wartość {metric_upper}',
                  color='#1f77b4', linewidth=2.5)
 
         if valid_key in history and history[valid_key]:
-            plt.plot(epochs, history[valid_key], label=f'Validation {metric_upper}',
+            plt.plot(epochs, history[valid_key], label=f'Walidacyjna wartość {metric_upper}',
                      color='#ff7f0e', linewidth=2.5)
 
-        plt.title(f'{model_name} — {metric_upper} Learning Curve', fontsize=14, pad=15)
-        plt.xlabel('Epoch', fontsize=12)
+        title = f"Krzywa uczenia - błąd {metric_upper} dla modelu {model_name}" if model_name else f"Krzywa uczenia - błąd {metric_upper}"
+        plt.title(title, fontsize=14, pad=15)
+        plt.xlabel('Epoka', fontsize=12)
         plt.ylabel(metric_upper, fontsize=12)
 
         ax = plt.gca()
@@ -166,23 +167,24 @@ class MetricsVisualizator():
         plt.show()
 
     
-    def display_loss(self, history: dict[str, list], model_name: str) -> None:
+    def display_loss(self, history: dict[str, list], model_name: str = None) -> None:
         if not history or 'train_loss' not in history or not history['train_loss']:
             print("Error: No training data available to plot.")
             return
 
         epochs = range(1, len(history['train_loss']) + 1)
         plt.figure(figsize=(10, 6))
-        plt.plot(epochs, history['train_loss'], label='Training Loss', 
+        plt.plot(epochs, history['train_loss'], label='Strata treningowa', 
                 color='#1f77b4', linewidth=2.5)
 
         if 'valid_loss' in history and history['valid_loss']:
-            plt.plot(epochs, history['valid_loss'], label='Validation Loss', 
+            plt.plot(epochs, history['valid_loss'], label='Strata walidacyjna', 
                     color='#ff7f0e', linewidth=2.5)
 
-        plt.title(f'{model_name} Learning Curves', fontsize=14, pad=15)
-        plt.xlabel('Epoch', fontsize=12)
-        plt.ylabel('Loss', fontsize=12)
+        title = f"Krzywa uczenia modelu {model_name}" if model_name else "Krzywa uczenia" 
+        plt.title(title, fontsize=14, pad=15)
+        plt.xlabel('Epoka', fontsize=12)
+        plt.ylabel('Wartość funkcji straty', fontsize=12)
 
         ax = plt.gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -193,32 +195,33 @@ class MetricsVisualizator():
         plt.show()
 
 
-    def display_part_losses(self, history: dict[str, list], model_name: str) -> None:
+    def display_part_losses(self, history: dict[str, list], model_name: str = None) -> None:
         epochs = range(1, len(history['train_loss']) + 1)
         plt.figure(figsize=(10, 6))
         if "train_cop" in history and history["train_cop"]:
-            plt.plot(epochs, history['train_cop'], label='Training COP Loss', 
+            plt.plot(epochs, history['train_cop'], label='Wartość straty COP', 
                 color='#1f77b4', linewidth=2.5)
 
         if 'train_rec' in history and history['train_rec']:
-            plt.plot(epochs, history['train_rec'], label='Training Reconstruction Loss', 
+            plt.plot(epochs, history['train_rec'], label='Wartość straty REC', 
                     color='#ff7f0e', linewidth=2.5)
             
         if 'train_stab' in history and history['train_stab']:
-            plt.plot(epochs, history['train_stab'], label='Training Stability Loss', 
+            plt.plot(epochs, history['train_stab'], label='Wartość straty STAB', 
                     color="#3eff0e", linewidth=2.5)
             
         if 'train_cons' in history and history['train_cons']:
-            plt.plot(epochs, history['train_cons'], label='Training Consistency Loss', 
+            plt.plot(epochs, history['train_cons'], label='Wartość straty CONS', 
                     color="#ff0e0e", linewidth=2.5)
 
         if 'train_fit' in history and history['train_fit']:
-            plt.plot(epochs, history['train_fit'], label='Training Reconstruction Loss', 
+            plt.plot(epochs, history['train_fit'], label='Wartość straty FIT', 
                     color="#ff7f0e", linewidth=2.5)
 
-        plt.title(f'{model_name} Training loss parts', fontsize=14, pad=15)
-        plt.xlabel('Epoch', fontsize=12)
-        plt.ylabel('Loss', fontsize=12)
+        title = f"Treningowe wartości członów funkcji straty modelu {model_name}" if model_name else "Treningowe wartości członów funkcji straty"
+        plt.title(title, fontsize=14, pad=15)
+        plt.xlabel('Epoka', fontsize=12)
+        plt.ylabel('Wartość funkcji straty', fontsize=12)
 
         ax = plt.gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -275,3 +278,19 @@ class MetricsVisualizator():
         plt.tight_layout()
         plt.show()
 
+    def display_criteria_comparison(self, df: pd.DataFrame, metrics: list[str]) -> None:
+        fig, axes = plt.subplots(2, 1, figsize=(10, 12))
+        plot_metrics = [("mae", "MAE"), ("kendall_tau", "Kendall τ")]
+
+        for ax, (col, label) in zip(axes, plot_metrics):
+            sns.lineplot(data=df, x="criteria", y=col, hue="stratum",
+                        marker="o", linewidth=2.5, ax=ax)
+            ax.set_title(label)
+            ax.set_xlabel("Liczba kryteriów")
+            ax.set_ylabel(label)
+            ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
+            ax.legend(title="Poziom niespójności")
+
+        plt.suptitle("Jakość modelu w zależności od liczby kryteriów", fontsize=16, y=1.02)
+        plt.tight_layout(h_pad=3.0)
+        plt.show()
