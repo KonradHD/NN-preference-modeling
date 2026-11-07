@@ -9,7 +9,8 @@ class DenseMonteCarloNet(nn.Module):
     def __init__(
         self,
         n_criteria: int,
-        hidden_dims: list[int] | None = None,
+        neurons: int | None = None,
+        layers: int = 3,
         expansion_factor: int = 4,
         dropout_rate: float = 0.2,
         negative_slope: float = 0.01,
@@ -19,25 +20,42 @@ class DenseMonteCarloNet(nn.Module):
         self.n = n_criteria
         self.input_dim = n_criteria * (n_criteria - 1) // 2
         self.negative_slope = negative_slope
+        self.num_layers = layers
 
-        if hidden_dims is None:
-            first_dim = self.input_dim * expansion_factor
-            second_dim = self.input_dim * 2
-            third_dim = max(self.input_dim, n_criteria)
-            hidden_dims = [first_dim, second_dim, third_dim]
+        if layers < 1:
+            raise ValueError("Number of layers must be at least 1.")
 
-        layers: list[nn.Module] = []
+        if neurons is None:
+            neurons = self.input_dim * expansion_factor
+
+        if neurons < 1:
+            raise ValueError("Number of neurons must be at least 1.")
+
+        self.neurons = neurons
+
+        hidden_dims: list[int] = []
+        current_dim = neurons
+        for i in range(layers):
+            if i == 0:
+                hidden_dims.append(current_dim)
+            else:
+                current_dim = max(1, current_dim // 2)
+                hidden_dims.append(current_dim)
+
+        self.hidden_dims = hidden_dims
+
+        layer_modules: list[nn.Module] = []
         prev_dim = self.input_dim
 
         for h_dim in hidden_dims:
-            layers.append(nn.Linear(prev_dim, h_dim))
+            layer_modules.append(nn.Linear(prev_dim, h_dim))
             if use_batch_norm:
-                layers.append(nn.BatchNorm1d(h_dim))
-            layers.append(nn.LeakyReLU(negative_slope=negative_slope))
-            layers.append(nn.Dropout(dropout_rate))
+                layer_modules.append(nn.BatchNorm1d(h_dim))
+            layer_modules.append(nn.LeakyReLU(negative_slope=negative_slope))
+            layer_modules.append(nn.Dropout(dropout_rate))
             prev_dim = h_dim
 
-        self.feature_extractor = nn.Sequential(*layers)
+        self.feature_extractor = nn.Sequential(*layer_modules)
         self.head = nn.Linear(prev_dim, n_criteria)
 
         self._init_weights()

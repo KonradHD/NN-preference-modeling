@@ -28,3 +28,25 @@ class ModelLoader:
         print(f"History and model: {criterion} loaded from {dir_path}")
         
         return model, history
+
+    def load_model(
+        self,
+        model: torch.nn.Module | None = None,
+        params: dict | None = None,
+        model_str: str | None = None,
+        model_type: str = "dense_hiperparameters",
+        device: torch.device | str | None = None,
+        n_criteria: int | None = None,
+        **kwargs,
+    ) -> tuple[torch.nn.Module, dict]:
+        from model.trainers.trainer import load_model as _load_model
+        return _load_model(
+            model=model,
+            params=params,
+            model_str=model_str,
+            model_type=model_type,
+            base_dir=self.base_dir,
+            device=device or self.device,
+            n_criteria=n_criteria,
+            **kwargs,
+        )

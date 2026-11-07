@@ -141,3 +141,126 @@ class Trainer(ABC):
             json.dump(self.history, file, indent=4)
             
         print(f"History and model: {criterion_str} was saved in {dir_path}")
+
+    def save_state_model(
+        self,
+        params: dict | None = None,
+        model_str: str | None = None,
+        model_type: str = "dense_hiperparameters",
+        base_dir: str = "models",
+    ) -> str:
+        return save_state_model(
+            model=self.model,
+            history=self.history,
+            params=params,
+            model_str=model_str,
+            model_type=model_type,
+            base_dir=base_dir,
+        )
+
+
+def get_hyperparameter_model_str(
+    params: dict | None = None,
+    neurons: int | None = None,
+    layers: int | None = None,
+    expansion_factor: int | None = None,
+    dropout_rate: float | None = None,
+    negative_slope: float | None = None,
+    learning_rate: float | None = None,
+    batch_size: int | None = None,
+    batch_norm: bool | None = None,
+    **kwargs,
+) -> str:
+    p = params.copy() if params is not None else {}
+    p.update(kwargs)
+
+    neu = neurons if neurons is not None else p.get("neurons")
+    lay = layers if layers is not None else p.get("layers")
+    exp = expansion_factor if expansion_factor is not None else p.get("expansion_factor")
+    drop = dropout_rate if dropout_rate is not None else p.get("dropout_rate")
+    slope = negative_slope if negative_slope is not None else p.get("negative_slope")
+    lr = learning_rate if learning_rate is not None else p.get("learning_rate")
+    bs = batch_size if batch_size is not None else p.get("batch_size")
+    bn = batch_norm if batch_norm is not None else p.get("batch_norm")
+
+    return f"neu{neu}_lay{lay}_exp{exp}_drop{int(drop*10000)}_slope{int(slope*10000)}_lr{int(lr*10000)}_bs{bs}_bn{bn}"
+
+
+def save_state_model(
+    model: torch.nn.Module,
+    history: dict,
+    params: dict | None = None,
+    model_str: str | None = None,
+    model_type: str = "dense_hiperparameters",
+    base_dir: str = "models",
+) -> str:
+    dir_path = os.path.join(base_dir, model_type)
+    model_dir = os.path.join(dir_path, "model")
+    history_dir = os.path.join(dir_path, "history")
+
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(history_dir, exist_ok=True)
+
+    if model_str is None:
+        p = params if params is not None else history.get("params", history)
+        model_str = get_hyperparameter_model_str(p)
+
+    model_path = os.path.join(model_dir, f"{model_str}.pth")
+    history_path = os.path.join(history_dir, f"{model_str}.json")
+
+    torch.save(model.state_dict(), model_path)
+    with open(history_path, "w", encoding="utf-8") as file:
+        json.dump(history, file, indent=4)
+
+    print(f"History and model: {model_str} was saved in {dir_path}")
+    return model_str
+
+
+def load_model(
+    model: torch.nn.Module | None = None,
+    params: dict | None = None,
+    model_str: str | None = None,
+    model_type: str = "dense_hiperparameters",
+    base_dir: str = "models",
+    device: torch.device | str | None = None,
+    n_criteria: int | None = None,
+    **kwargs,
+) -> tuple[torch.nn.Module, dict]:
+    target_device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dir_path = os.path.join(base_dir, model_type)
+
+    if model_str is None:
+        p = params if params is not None else kwargs
+        model_str = get_hyperparameter_model_str(p)
+
+    model_path = os.path.join(dir_path, "model", f"{model_str}.pth")
+    history_path = os.path.join(dir_path, "history", f"{model_str}.json")
+
+    if not os.path.exists(model_path) or not os.path.exists(history_path):
+        raise FileNotFoundError(f"There are no files in {dir_path} for {model_str}")
+
+    with open(history_path, "r", encoding="utf-8") as file:
+        history = json.load(file)
+
+    if model is None:
+        from model.architecture.dense_monte_carlo import DenseMonteCarloNet
+        p = params if params is not None else kwargs
+        crit_num = n_criteria or history.get("n_criteria", p.get("n_criteria", 5))
+        bn = p.get("batch_norm")
+        if bn is None:
+            bn = p.get("use_batch_norm", True)
+        model = DenseMonteCarloNet(
+            n_criteria=crit_num,
+            neurons=p.get("neurons"),
+            layers=p.get("layers", 3),
+            expansion_factor=p.get("expansion_factor", 4),
+            dropout_rate=p.get("dropout_rate", 0.2),
+            negative_slope=p.get("negative_slope", 0.01),
+            use_batch_norm=bn,
+        )
+
+    model.load_state_dict(torch.load(model_path, map_location=target_device, weights_only=True))
+    model.to(target_device)
+
+    print(f"History and model: {model_str} loaded from {dir_path}")
+    return model, history

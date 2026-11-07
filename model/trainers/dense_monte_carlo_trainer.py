@@ -16,9 +16,10 @@ class DenseMonteCarloTrainer(Trainer):
         optimizer: torch.optim.Optimizer,
         criterion: MCBaseLoss,
         device: torch.device,
+        model_type: str = "dense_monte_carlo"
     ):
         super().__init__(model, optimizer, criterion, device)
-        self._model_type = "dense_monte_carlo"
+        self._model_type = model_type
 
     def init_loss_normalization(
         self,
