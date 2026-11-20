@@ -1,0 +1,20 @@
+[
+    [
+        [],
+        {
+            "neurons": 128,
+            "layers": 3,
+            "expansion_factor": 8,
+            "dropout_rate": 0.4,
+            "negative_slope": 0.5,
+            "learning_rate": 0.001,
+            "batch_size": 1024,
+            "batch_norm": false
+        },
+        {
+            "val_mae": 0.0424,
+            "val_loss": 0.1704,
+            "tau": 0.7240
+        }
+    ]
+]

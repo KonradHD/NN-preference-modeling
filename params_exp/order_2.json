@@ -1,0 +1,52 @@
+[
+    [
+        [
+            "batch_size",
+            "batch_norm",
+            "negative_slope",
+            "dropout_rate",
+            "layers",
+            "learning_rate",
+            "expansion_factor"
+        ],
+        {
+            "layers": 4,
+            "expansion_factor": 12,
+            "dropout_rate": 0.2,
+            "negative_slope": 0.5,
+            "learning_rate": 0.0001,
+            "batch_size": 512,
+            "batch_norm": false
+        },
+        {
+            "test_mae": 0.04237337877795411,
+            "test_tau": 0.7227511111111111,
+            "val_loss": 0.1695616915822029
+        }
+    ],
+    [
+        [
+            "batch_norm",
+            "layers",
+            "dropout_rate",
+            "expansion_factor",
+            "learning_rate",
+            "negative_slope",
+            "batch_size"
+        ],
+        {
+            "layers": 3,
+            "expansion_factor": 12,
+            "dropout_rate": 0.3,
+            "negative_slope": 0.1,
+            "learning_rate": 0.01,
+            "batch_size": 256,
+            "batch_norm": false
+        },
+        {
+            "test_mae": 0.04255914336607481,
+            "test_tau": 0.7220533333333333,
+            "val_loss": 0.16670918363061818
+        }
+    ]
+]

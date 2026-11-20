@@ -21,6 +21,7 @@ class CustomDenseMCLoss(MCBaseLoss):
         stab_mode: str = "kullback",
         entropy_threshold: float | None = None,
         normalize_initial_loss: bool = False,
+        q: float = 2.0,
     ):
         super(CustomDenseMCLoss, self).__init__(lambda_cop, lambda_fit, lambda_stab)
         self.n_criteria = n_criteria
@@ -31,6 +32,7 @@ class CustomDenseMCLoss(MCBaseLoss):
         self.stab_mode = stab_mode
         self.entropy_threshold = entropy_threshold
         self.normalize_initial_loss = normalize_initial_loss
+        self.q = q
 
         i, j = torch.triu_indices(n_criteria, n_criteria, offset=1)
         self.register_buffer("triu_i", i)
@@ -132,19 +134,34 @@ class CustomDenseMCLoss(MCBaseLoss):
         log_n = math.log(self.n_criteria)
 
         if self.stab_mode == "kullback":
-            kl_per_sample = (weights * (log_weights + log_n)).sum(dim=-1)
-        elif self.stab_mode == "entropy": # implement
-            kl_per_sample = -(weights * log_weights).sum(dim=-1)
+            penalty_per_sample = (weights * (log_weights + log_n)).sum(dim=-1)
+
+        elif self.stab_mode == "renyi":
+            q = self.q
+            w_q = torch.pow(weights + 1e-12, q).sum(dim=-1)
+            renyi_entropy = torch.log(w_q) / (1.0 - q)
+            max_renyi = math.log(self.n_criteria)
+            penalty_per_sample = max_renyi - renyi_entropy
+
+        elif self.stab_mode == "tsallis":
+            q = self.q
+            w_q = torch.pow(weights + 1e-12, q).sum(dim=-1)
+            tsallis_entropy = (1.0 - w_q) / (q - 1.0)
+            max_tsallis = (1.0 - self.n_criteria ** (1.0 - q)) / (q - 1.0)
+            penalty_per_sample = max_tsallis - tsallis_entropy
+
+        else:
+            raise ValueError(f"Unknown stab_mode: {self.stab_mode}")
 
         if self.entropy_threshold is not None:
             entropy_per_sample = -(weights * log_weights).sum(dim=-1)
             mask = (entropy_per_sample < self.entropy_threshold).float()
             mask_sum = mask.sum()
             if mask_sum > 0:
-                return (kl_per_sample * mask).sum() / mask_sum
+                return (penalty_per_sample * mask).sum() / mask_sum
             return (logits * 0.0).sum()
 
-        return kl_per_sample.mean()
+        return penalty_per_sample.mean()
 
     def forward(
         self,
@@ -181,6 +198,15 @@ class CustomDenseMCLoss(MCBaseLoss):
         cop_letter = str(self.cop_mode[0])
         stab_letter = str(self.stab_mode[0])
         name = f"cop{cop_str}{cop_letter}_fit{fit_str}_stab{stab_str}{stab_letter}_margin{margin_str}_p{self.p}"
+        
+        if self.stab_mode == "tsallis" or self.stab_mode == "renyi":
+            q_str = str(int(round(self.q * 100)))
+            name += f"_q{q_str}"
+
+        if self.entropy_threshold:
+            entr_str = str(int(round(self.entropy_threshold * 100)))
+            name += f"_entr{entr_str}"
+        
         if self.normalize_initial_loss:
             name += "_initnorm"
         return name
@@ -196,6 +222,7 @@ class CustomDenseMCLoss(MCBaseLoss):
             "stab_mode": self.stab_mode,
             "entropy_threshold": self.entropy_threshold,
             "normalize_initial_loss": self.normalize_initial_loss,
+            "q": self.q,
         }
 
 

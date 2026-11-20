@@ -1,0 +1,24 @@
+[
+    [
+        "batch_size",
+        "neurons",
+        "expansion_factor",
+        "dropout_rate",
+        "layers",
+        "negative_slope",
+        "batch_norm",
+        "learning_rate"
+    ],
+    {
+        "neurons": 128,
+        "layers": 4,
+        "expansion_factor": 6,
+        "dropout_rate": 0.2,
+        "negative_slope": 0.5,
+        "learning_rate": 0.0001,
+        "batch_size": 512,
+        "batch_norm": true
+    },
+    0.04233892814469679,
+    0.7232399999999999
+]

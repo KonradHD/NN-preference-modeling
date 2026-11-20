@@ -146,7 +146,7 @@ class Trainer(ABC):
         self,
         params: dict | None = None,
         model_str: str | None = None,
-        model_type: str = "dense_hiperparameters",
+        model_type: str = "dense_hiperparameters_exp",
         base_dir: str = "models",
     ) -> str:
         return save_state_model(
@@ -161,7 +161,7 @@ class Trainer(ABC):
 
 def get_hyperparameter_model_str(
     params: dict | None = None,
-    neurons: int | None = None,
+    # neurons: int | None = None,
     layers: int | None = None,
     expansion_factor: int | None = None,
     dropout_rate: float | None = None,
@@ -174,7 +174,7 @@ def get_hyperparameter_model_str(
     p = params.copy() if params is not None else {}
     p.update(kwargs)
 
-    neu = neurons if neurons is not None else p.get("neurons")
+    # neu = neurons if neurons is not None else p.get("neurons")
     lay = layers if layers is not None else p.get("layers")
     exp = expansion_factor if expansion_factor is not None else p.get("expansion_factor")
     drop = dropout_rate if dropout_rate is not None else p.get("dropout_rate")
@@ -183,7 +183,7 @@ def get_hyperparameter_model_str(
     bs = batch_size if batch_size is not None else p.get("batch_size")
     bn = batch_norm if batch_norm is not None else p.get("batch_norm")
 
-    return f"neu{neu}_lay{lay}_exp{exp}_drop{int(drop*10000)}_slope{int(slope*10000)}_lr{int(lr*10000)}_bs{bs}_bn{bn}"
+    return f"lay{lay}_exp{exp}_drop{int(drop*10000)}_slope{int(slope*10000)}_lr{int(lr*10000)}_bs{bs}_bn{bn}"
 
 
 def save_state_model(
@@ -191,7 +191,7 @@ def save_state_model(
     history: dict,
     params: dict | None = None,
     model_str: str | None = None,
-    model_type: str = "dense_hiperparameters",
+    model_type: str = "dense_hiperparameters_exp",
     base_dir: str = "models",
 ) -> str:
     dir_path = os.path.join(base_dir, model_type)
@@ -220,7 +220,7 @@ def load_model(
     model: torch.nn.Module | None = None,
     params: dict | None = None,
     model_str: str | None = None,
-    model_type: str = "dense_hiperparameters",
+    model_type: str = "dense_hiperparameters_exp",
     base_dir: str = "models",
     device: torch.device | str | None = None,
     n_criteria: int | None = None,

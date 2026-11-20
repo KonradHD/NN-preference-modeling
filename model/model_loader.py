@@ -34,7 +34,7 @@ class ModelLoader:
         model: torch.nn.Module | None = None,
         params: dict | None = None,
         model_str: str | None = None,
-        model_type: str = "dense_hiperparameters",
+        model_type: str = "dense_hiperparameters_exp",
         device: torch.device | str | None = None,
         n_criteria: int | None = None,
         **kwargs,

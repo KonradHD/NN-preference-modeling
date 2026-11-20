@@ -13,7 +13,8 @@ from visualization.results.metrics_visualizator import MetricsVisualizator
 from utils.loss_function_parameters import LossParameters, LossParametersMapper
 
 def criterion_to_str(cop: float, fit: float, stab: float, margin: float, 
-                    p: int, cop_mode: str, stab_mode: str, normalize_initial_loss: bool) -> str:
+                    p: int, cop_mode: str, stab_mode: str, normalize_initial_loss: bool, 
+                    entropy_threshold: float = None, q: float = 2.0) -> str:
     cop_str = str(int(round(cop * 100)))
     fit_str = str(int(round(fit * 100)))
     stab_str = str(int(round(stab * 100)))
@@ -21,6 +22,15 @@ def criterion_to_str(cop: float, fit: float, stab: float, margin: float,
     cop_letter = str(cop_mode[0])
     stab_letter = str(stab_mode[0])
     name = f"cop{cop_str}{cop_letter}_fit{fit_str}_stab{stab_str}{stab_letter}_margin{margin_str}_p{p}"
+        
+    if stab_mode == "tsallis" or stab_mode == "renyi":
+        q_str = str(int(round(q * 100)))
+        name += f"_q{q_str}"
+
+    if entropy_threshold:
+        entr_str = str(int(round(entropy_threshold * 100)))
+        name += f"_entr{entr_str}"
+        
     if normalize_initial_loss:
         name += "_initnorm"
     return name
@@ -106,10 +116,11 @@ def compare_mean_mae_models(
         true_weights: dict[str, np.ndarray], 
         predicted_priority_weights: dict[str, list[np.ndarray]],
         nn_names: list[str],
-        legend_title: str = "Metody obliczania wag"
+        legend_title: str = "Metody obliczania wag",
+        legend_loc="upper left"
     ) -> pd.DataFrame:
     strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
-    strata_pol = ['Niska niespójność', "Umiarkowana niespójność", "Wysoka niespójność"]
+    strata_pol = ['Niska', "Umiarkowana", "Wysoka"]
     records = []
 
     for stratum, stratum_pol in zip(strata, strata_pol):
@@ -158,11 +169,11 @@ def compare_mean_mae_models(
 
     plt.title("Porównanie średniego błędu MAE modeli dla poziomu niespójności", fontsize=14, pad=15)
     plt.xlabel("Poziom niespójności", fontsize=12)
-    plt.ylabel("Średnie MAE", fontsize=12)
+    plt.ylabel("MAE", fontsize=12)
     max_val = df["Mean MAE"].max() if not df.empty else 1.0
     y_mult = 1.55 if len(nn_names) > 6 else 1.45
     plt.ylim(0, max_val * y_mult)
-    plt.legend(title=legend_title, loc="upper left", fontsize=9)
+    plt.legend(title=legend_title, loc=legend_loc, fontsize=9)
     plt.tight_layout()
     plt.show()
 
@@ -173,10 +184,11 @@ def compare_kendal_tau_models(
         true_weights: dict[str, np.ndarray], 
         predicted_priority_weights: dict[str, list[np.ndarray]],
         nn_names: list[str],
-        legend_title: str = "Metody obliczania wag"
+        legend_title: str = "Metody obliczania wag",
+        legend_loc="upper right"
     ) -> pd.DataFrame:
     strata = ["low_inconsistency", "moderate_inconsistency", "high_inconsistency"]
-    strata_pol = ['Niska niespójność', "Umiarkowana niespójność", "Wysoka niespójność"]
+    strata_pol = ['Niska', "Umiarkowana", "Wysoka"]
     records = []
 
     for stratum, stratum_pol in zip(strata, strata_pol):
@@ -235,7 +247,7 @@ def compare_kendal_tau_models(
     plt.xlabel("Poziom niespójności", fontsize=14)
     plt.ylabel("Kendall Tau", fontsize=14)
     plt.ylim(0, 1)
-    plt.legend(title=legend_title, loc="upper right", fontsize=9)
+    plt.legend(title=legend_title, loc=legend_loc, fontsize=9)
     plt.tight_layout()
     plt.show()
 
@@ -451,6 +463,99 @@ def plot_grid_search_heatmap(
     plt.show()
 
 
+def plot_loss_modes_kendall_tau(
+    df_results: pd.DataFrame,
+    mode_col: str = "Mode",
+    title_suffix: str = "COP",
+    figsize: tuple[int, int] = (8, 6)
+) -> None:
+    sns.set_theme(style="whitegrid")
+    plt.figure(figsize=figsize)
+    palette = sns.color_palette("muted", n_colors=df_results[mode_col].nunique())
+    ax = sns.barplot(
+        data=df_results,
+        x="Inconsistency",
+        y="Kendall_Tau",
+        hue=mode_col,
+        palette=palette,
+        edgecolor="black",
+        linewidth=0.8,
+        errorbar=None
+    )
+    plt.title(f"Porównanie korelacji rang Kendalla dla różnych trybów członu {title_suffix}", fontsize=13, pad=10)
+    plt.xlabel("Poziom niespójności", fontsize=11)
+    plt.ylabel("Kendall Tau", fontsize=11)
+    plt.ylim(0.0, 1.05)
+    plt.legend(title=mode_col, frameon=True)
+
+    for p in ax.patches:
+        h = p.get_height()
+        if h > 0:
+            ax.annotate(
+                f"{h:.3f}",
+                (p.get_x() + p.get_width() / 2.0, h / 2.0),
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="white",
+                fontweight="bold",
+                rotation=90
+            )
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_loss_modes_mae(
+    df_results: pd.DataFrame,
+    mode_col: str = "Mode",
+    title_suffix: str = "COP",
+    figsize: tuple[int, int] = (8, 6)
+) -> None:
+    sns.set_theme(style="whitegrid")
+    plt.figure(figsize=figsize)
+    palette = sns.color_palette("muted", n_colors=df_results[mode_col].nunique())
+    ax = sns.barplot(
+        data=df_results,
+        x="Inconsistency",
+        y="MAE",
+        hue=mode_col,
+        palette=palette,
+        edgecolor="black",
+        linewidth=0.8,
+        errorbar=None
+    )
+    plt.title(f"Porównanie średniego błędu MAE dla różnych trybów członu {title_suffix}", fontsize=13, pad=10)
+    plt.xlabel("Poziom niespójności", fontsize=11)
+    plt.ylabel("MAE", fontsize=11)
+    plt.legend(title=mode_col, frameon=True)
+
+    for p in ax.patches:
+        h = p.get_height()
+        if h > 0:
+            ax.annotate(
+                f"{h:.4f}",
+                (p.get_x() + p.get_width() / 2.0, h / 2.0),
+                ha="center",
+                va="center",
+                fontsize=9,
+                color="white",
+                fontweight="bold",
+                rotation=90
+            )
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_loss_modes_comparison(
+    df_results: pd.DataFrame,
+    mode_col: str = "Mode",
+    title_suffix: str = "COP"
+) -> None:
+    plot_loss_modes_kendall_tau(df_results, mode_col=mode_col, title_suffix=title_suffix)
+    plot_loss_modes_mae(df_results, mode_col=mode_col, title_suffix=title_suffix)
+
 def plot_mean_results_heatmap(
     grid_results_df: pd.DataFrame,
     value_metric: str,
@@ -534,14 +639,16 @@ def plot_mean_results_heatmap_3_params(
     plt.tight_layout()
     plt.show()
 
-def get_predictor(device, cop, fit, stab, margin, p, cop_mode, stab_mode, normalize, lr, criteria_num):
-    criterion_str = criterion_to_str(cop, fit, stab, margin, p, cop_mode, stab_mode, normalize)
+def get_predictor(device, cop, fit, stab, margin, p, cop_mode, stab_mode, normalize,
+        entropy_threshold, q, lr, criteria_num):
+    criterion_str = criterion_to_str(cop, fit, stab, margin, p, cop_mode, stab_mode, normalize, 
+        entropy_threshold, q)
     model_loader = ModelLoader()
     empty_model = DenseMonteCarloNet(n_criteria=criteria_num)
     model, history = model_loader.load_dense_MC(empty_model, criteria_num, criterion_str)
     criterion = CustomDenseMCLoss(n_criteria=criteria_num, lambda_cop=cop, lambda_fit=fit, 
         lambda_stab=stab, p=p, normalize_initial_loss=normalize, margin=margin,
-        cop_mode=cop_mode, stab_mode=stab_mode).to(device)
+        cop_mode=cop_mode, stab_mode=stab_mode, entropy_threshold=entropy_threshold, q=q).to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     trainer = DenseMonteCarloTrainer(model, optimizer, criterion, device)
 
