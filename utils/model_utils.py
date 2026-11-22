@@ -639,17 +639,59 @@ def plot_mean_results_heatmap_3_params(
     plt.tight_layout()
     plt.show()
 
-def get_predictor(device, cop, fit, stab, margin, p, cop_mode, stab_mode, normalize,
-        entropy_threshold, q, lr, criteria_num):
-    criterion_str = criterion_to_str(cop, fit, stab, margin, p, cop_mode, stab_mode, normalize, 
-        entropy_threshold, q)
+def get_predictor(
+    device, cop, fit, stab, margin, p, cop_mode, stab_mode, normalize,
+    entropy_threshold, q, lr, criteria_num, model_type: str = "dense_monte_carlo",
+    layers: int | None = None,
+    expansion_factor: int | None = None,
+    dropout_rate: float | None = None,
+    negative_slope: float | None = None,
+    use_batch_norm: bool | None = None,
+    batch_norm: bool | None = None,
+    neurons: int | None = None,
+    **kwargs,
+):
+    criterion_str = criterion_to_str(
+        cop, fit, stab, margin, p, cop_mode, stab_mode, normalize,
+        entropy_threshold, q
+    )
     model_loader = ModelLoader()
-    empty_model = DenseMonteCarloNet(n_criteria=criteria_num)
-    model, history = model_loader.load_dense_MC(empty_model, criteria_num, criterion_str)
-    criterion = CustomDenseMCLoss(n_criteria=criteria_num, lambda_cop=cop, lambda_fit=fit, 
+
+    if use_batch_norm is None and batch_norm is not None:
+        use_batch_norm = batch_norm
+
+    if model_type == "dense_optimized":
+        net_layers = 4 if layers is None else layers
+        net_expansion = 12 if expansion_factor is None else expansion_factor
+        net_dropout = 0.2 if dropout_rate is None else dropout_rate
+        net_slope = 0.5 if negative_slope is None else negative_slope
+        net_bn = False if use_batch_norm is None else use_batch_norm
+    else:
+        net_layers = 3 if layers is None else layers
+        net_expansion = 4 if expansion_factor is None else expansion_factor
+        net_dropout = 0.2 if dropout_rate is None else dropout_rate
+        net_slope = 0.01 if negative_slope is None else negative_slope
+        net_bn = True if use_batch_norm is None else use_batch_norm
+
+    empty_model = DenseMonteCarloNet(
+        n_criteria=criteria_num,
+        neurons=neurons,
+        layers=net_layers,
+        expansion_factor=net_expansion,
+        dropout_rate=net_dropout,
+        negative_slope=net_slope,
+        use_batch_norm=net_bn,
+    )
+    model, history = model_loader.load_dense_MC(
+        empty_model, criteria_num, criterion_str, model_type=model_type,
+        negative_slope=net_slope, dropout_rate=net_dropout, **kwargs
+    )
+    criterion = CustomDenseMCLoss(
+        n_criteria=criteria_num, lambda_cop=cop, lambda_fit=fit,
         lambda_stab=stab, p=p, normalize_initial_loss=normalize, margin=margin,
-        cop_mode=cop_mode, stab_mode=stab_mode, entropy_threshold=entropy_threshold, q=q).to(device)
+        cop_mode=cop_mode, stab_mode=stab_mode, entropy_threshold=entropy_threshold, q=q
+    ).to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    trainer = DenseMonteCarloTrainer(model, optimizer, criterion, device)
+    trainer = DenseMonteCarloTrainer(model, optimizer, criterion, device, model_type=model_type)
 
     return trainer, criterion_str
