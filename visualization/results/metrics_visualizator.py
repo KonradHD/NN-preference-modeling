@@ -221,7 +221,7 @@ class MetricsVisualizator():
         title = f"Treningowe wartości członów funkcji straty modelu {model_name}" if model_name else "Treningowe wartości członów funkcji straty"
         plt.title(title, fontsize=14, pad=15)
         plt.xlabel('Epoka', fontsize=12)
-        plt.ylabel('Wartość funkcji straty', fontsize=12)
+        plt.ylabel('Wartość straty', fontsize=12)
 
         ax = plt.gca()
         ax.xaxis.set_major_locator(MaxNLocator(integer=True))
@@ -278,19 +278,55 @@ class MetricsVisualizator():
         plt.tight_layout()
         plt.show()
 
-    def display_criteria_comparison(self, df: pd.DataFrame, metrics: list[str]) -> None:
-        fig, axes = plt.subplots(2, 1, figsize=(10, 12))
-        plot_metrics = [("mae", "MAE"), ("kendall_tau", "Kendall τ")]
+    def display_criteria_comparison(
+        self,
+        df: pd.DataFrame,
+        metrics: list[str],
+        hue_col: str | None = None,
+        legend_title: str | None = None,
+        title: str | None = None
+    ) -> None:
+        metric_labels = {
+            "mae": "MAE",
+            "kendall_tau": "Kendall Tau",
+            "top1": "Top-1 Hit Rate",
+            "spearman": "Spearman"
+        }
+        plot_metrics = [(m, metric_labels.get(m, m)) for m in metrics] if metrics else [("mae", "MAE"), ("kendall_tau", "Kendall Tau")]
+
+        if hue_col is None:
+            hue_col = "stratum" if "stratum" in df.columns else "method"
+
+        if legend_title is None:
+            legend_title = "Poziom niespójności" if hue_col == "stratum" else "Metoda"
+
+        if title is None:
+            title = (
+                "Jakość modelu w zależności od liczby kryteriów"
+                if hue_col == "stratum"
+                else "Porównanie sieci neuronowej z metodą EVM w zależności od liczby kryteriów"
+            )
+
+        fig, axes = plt.subplots(len(plot_metrics), 1, figsize=(10, 6 * len(plot_metrics)))
+        if len(plot_metrics) == 1:
+            axes = [axes]
 
         for ax, (col, label) in zip(axes, plot_metrics):
-            sns.lineplot(data=df, x="criteria", y=col, hue="stratum",
-                        marker="o", linewidth=2.5, ax=ax)
-            ax.set_title(label)
+            sns.lineplot(
+                data=df,
+                x="criteria",
+                y=col,
+                hue=hue_col,
+                marker="o",
+                linewidth=2.5,
+                errorbar=None,
+                ax=ax
+            )
             ax.set_xlabel("Liczba kryteriów")
             ax.set_ylabel(label)
             ax.xaxis.set_major_locator(plt.MaxNLocator(integer=True))
-            ax.legend(title="Poziom niespójności")
+            ax.legend(title=legend_title)
 
-        plt.suptitle("Jakość modelu w zależności od liczby kryteriów", fontsize=16, y=1.02)
+        plt.suptitle(title, fontsize=16, y=1.02)
         plt.tight_layout(h_pad=3.0)
         plt.show()

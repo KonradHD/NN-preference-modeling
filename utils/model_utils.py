@@ -365,6 +365,7 @@ def collect_grid_search_results(
         normalize = param[5]
         cop_mode = param[6]
         stab_mode = param[7]
+        enthropy = param[8]
 
         for stratum in strata:
             if stratum not in true_weights:
@@ -395,6 +396,7 @@ def collect_grid_search_results(
                 LossParameters.NORMALIZE: normalize,
                 LossParameters.COP_MODE: cop_mode,
                 LossParameters.STAB_MODE: stab_mode,
+                LossParameters.ENTHROPY_THRESHOLD: enthropy,
                 "mae": float(np.mean(mae_scores)),
                 "kendall_tau": float(np.mean(tau_scores)),
                 "top1": float(np.mean(top1_scores)),
@@ -555,6 +557,152 @@ def plot_loss_modes_comparison(
 ) -> None:
     plot_loss_modes_kendall_tau(df_results, mode_col=mode_col, title_suffix=title_suffix)
     plot_loss_modes_mae(df_results, mode_col=mode_col, title_suffix=title_suffix)
+
+
+def _parse_model_modes(df: pd.DataFrame) -> pd.DataFrame:
+    df_copy = df.copy()
+    if "Model" in df_copy.columns:
+        if "COP_MODE" not in df_copy.columns:
+            df_copy["COP_MODE"] = df_copy["Model"].apply(
+                lambda name: "bradley" if str(name).split("_")[0].endswith("b") else "margin"
+            )
+        if "STAB_MODE" not in df_copy.columns:
+            def parse_stab(name):
+                parts = str(name).split("_")
+                char = parts[2][-1] if len(parts) > 2 else ""
+                return {"k": "kullback", "r": "renyi", "t": "tsallis"}.get(char, "kullback")
+            df_copy["STAB_MODE"] = df_copy["Model"].apply(parse_stab)
+        if "FIT_MODE" not in df_copy.columns:
+            df_copy["FIT_MODE"] = df_copy["Model"].apply(
+                lambda name: 1 if "_p1" in str(name) else 2
+            )
+    return df_copy
+
+
+def plot_loss_modes_faceted_mae(
+    df_results: pd.DataFrame,
+    metric_col: str = "Mean MAE",
+    figsize: tuple[int, int] = (12, 6)
+) -> None:
+    df_parsed = _parse_model_modes(df_results)
+    if metric_col not in df_parsed.columns:
+        for candidate in ["Mean MAE", "MAE", "mae"]:
+            if candidate in df_parsed.columns:
+                metric_col = candidate
+                break
+
+    df_agg = df_parsed.groupby(["FIT_MODE", "COP_MODE", "STAB_MODE"], as_index=False)[metric_col].mean()
+    df_agg["COP_MODE"] = df_agg["COP_MODE"].astype(str).str.capitalize()
+    df_agg["STAB_MODE"] = df_agg["STAB_MODE"].astype(str).str.capitalize()
+
+    sns.set_theme(style="whitegrid")
+    fig, axes = plt.subplots(1, 2, figsize=figsize, sharey=True)
+    palette = {"Kullback": "#4C72B0", "Renyi": "#DD8452", "Tsallis": "#55A868"}
+
+    max_val = df_agg[metric_col].max() if not df_agg.empty else 0.05
+    min_val = 0.0
+
+    p_configs = [(1, "p = 1", axes[0]), (2, "p = 2", axes[1])]
+
+    for p_val, panel_title, ax in p_configs:
+        sub_df = df_agg[df_agg["FIT_MODE"] == p_val]
+        stabs_present = [s for s in ["Kullback", "Renyi", "Tsallis"] if s in sub_df["STAB_MODE"].unique()]
+        sns.barplot(
+            data=sub_df,
+            x="COP_MODE",
+            y=metric_col,
+            hue="STAB_MODE",
+            order=["Margin", "Bradley"],
+            hue_order=stabs_present if stabs_present else ["Kullback", "Renyi"],
+            palette=palette,
+            edgecolor="black",
+            linewidth=0.8,
+            ax=ax
+        )
+        ax.set_title(panel_title, fontsize=13, pad=10, fontweight="bold")
+        ax.set_xlabel("Tryb członu COP", fontsize=11)
+        ax.set_ylim(min_val, max_val * 1.3)
+
+        for container in ax.containers:
+            ax.bar_label(container, fmt="%.4f", padding=3, fontsize=9)
+
+        if ax == axes[0]:
+            ax.set_ylabel("MAE", fontsize=11)
+            legend = ax.get_legend()
+            if legend:
+                legend.remove()
+        else:
+            ax.set_ylabel("")
+            ax.legend(title="Tryb członu STAB", frameon=True, fontsize=10, title_fontsize=10)
+
+    plt.suptitle("Wpływ trybów funkcji straty na błąd MAE w zależności od potęgi członu FIT", fontsize=14, y=1.02, fontweight="bold")
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_loss_modes_faceted_kendall_tau(
+    df_results: pd.DataFrame,
+    metric_col: str = "Kendall Tau",
+    figsize: tuple[int, int] = (12, 6)
+) -> None:
+    df_parsed = _parse_model_modes(df_results)
+    if metric_col not in df_parsed.columns:
+        for candidate in ["Kendall Tau", "Kendall_Tau", "Tau", "tau"]:
+            if candidate in df_parsed.columns:
+                metric_col = candidate
+                break
+
+    df_agg = df_parsed.groupby(["FIT_MODE", "COP_MODE", "STAB_MODE"], as_index=False)[metric_col].mean()
+    df_agg["COP_MODE"] = df_agg["COP_MODE"].astype(str).str.capitalize()
+    df_agg["STAB_MODE"] = df_agg["STAB_MODE"].astype(str).str.capitalize()
+
+    sns.set_theme(style="whitegrid")
+    fig, axes = plt.subplots(1, 2, figsize=figsize, sharey=True)
+    palette = {"Kullback": "#4C72B0", "Renyi": "#DD8452", "Tsallis": "#55A868"}
+
+    max_val = df_agg[metric_col].max() if not df_agg.empty else 1.0
+    min_val = df_agg[metric_col].min() if not df_agg.empty else 0.0
+    spread = max_val - min_val if max_val > min_val else 0.001
+    y_bottom = max(0.0, min_val - spread * 6)
+    y_top = min(1.0, max_val + spread * 2)
+
+    p_configs = [(1, "p = 1", axes[0]), (2, "p = 2", axes[1])]
+
+    for p_val, panel_title, ax in p_configs:
+        sub_df = df_agg[df_agg["FIT_MODE"] == p_val]
+        stabs_present = [s for s in ["Kullback", "Renyi", "Tsallis"] if s in sub_df["STAB_MODE"].unique()]
+        sns.barplot(
+            data=sub_df,
+            x="COP_MODE",
+            y=metric_col,
+            hue="STAB_MODE",
+            order=["Margin", "Bradley"],
+            hue_order=stabs_present if stabs_present else ["Kullback", "Renyi"],
+            palette=palette,
+            edgecolor="black",
+            linewidth=0.8,
+            ax=ax
+        )
+        ax.set_title(panel_title, fontsize=13, pad=10, fontweight="bold")
+        ax.set_xlabel("Tryb członu COP", fontsize=11)
+        ax.set_ylim(y_bottom, y_top + spread * 1.3)
+
+        for container in ax.containers:
+            ax.bar_label(container, fmt="%.4f", padding=3, fontsize=9)
+
+        if ax == axes[0]:
+            ax.set_ylabel("Współczynnik Kendall Tau", fontsize=11)
+            legend = ax.get_legend()
+            if legend:
+                legend.remove()
+        else:
+            ax.set_ylabel("")
+            ax.legend(title="Tryb członu STAB", frameon=True, fontsize=10, title_fontsize=10)
+
+    plt.suptitle("Wpływ trybów funkcji straty na korelację rang Kendalla w zależności od potęgi członu FIT", fontsize=14, y=1.02, fontweight="bold")
+    plt.tight_layout()
+    plt.show()
+
 
 def plot_mean_results_heatmap(
     grid_results_df: pd.DataFrame,

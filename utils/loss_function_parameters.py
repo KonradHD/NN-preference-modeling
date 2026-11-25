@@ -8,7 +8,8 @@ class LossParameters(Enum):
     NORMALIZE = "normalize", 
     P =   "p",
     COP_MODE = "cop_mode",
-    STAB_MODE = "stab_mode"
+    STAB_MODE = "stab_mode",
+    ENTHROPY_THRESHOLD = "enthropy_threshold"
 
 
 LossParametersMapper: dict[LossParameters, str] = {
@@ -19,7 +20,8 @@ LossParametersMapper: dict[LossParameters, str] = {
     LossParameters.NORMALIZE: "Czy członu funkcji straty są normalizowane",
     LossParameters.P: "Wartość współczynnik p",
     LossParameters.COP_MODE: "Tryb COP",
-    LossParameters.STAB_MODE: "Tryb STAB"
+    LossParameters.STAB_MODE: "Tryb STAB",
+    LossParameters.ENTHROPY_THRESHOLD: "Próg entropii"
 }
 
 
